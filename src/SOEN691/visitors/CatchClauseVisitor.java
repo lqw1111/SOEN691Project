@@ -7,14 +7,19 @@ import java.util.List;
 
 import org.eclipse.jdt.core.Flags;
 import org.eclipse.jdt.core.IBuffer;
+import org.eclipse.jdt.core.ICompilationUnit;
+import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IMember;
 import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.ISourceRange;
 import org.eclipse.jdt.core.JavaModelException;
+import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
+import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.CatchClause;
+import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.IMethodBinding;
@@ -43,16 +48,87 @@ public class CatchClauseVisitor extends ASTVisitor{
 	public CatchClauseVisitor(HashSet<CatchClause> previouslyFoundCatches) {
 		indebtCatches.addAll(previouslyFoundCatches);
 	}
+	
+	public List<String> FindExceptions(Block block) throws JavaModelException {
+		List<String> exceptionList = new ArrayList<String>();
+		
+		List<ASTNode> bodies = block.statements();
+		
+		for(ASTNode node: bodies) {
+			if (node instanceof ExpressionStatement) {
+				ExpressionStatement ex = (ExpressionStatement) node;
+				MethodInvocation mInvocation = (MethodInvocation) ex.getExpression();
+				MethodDeclaration unitDeclaration = FindMethodDeclaration(mInvocation);
+				
+				//1. Add all runtime exception from javadoc
+				exceptionList.addAll(FindRuntimeExceptions(mInvocation));
+				//2. Add all non-runtime exception from declaration
+				exceptionList.addAll(FindNonRuntimeExceptions(mInvocation));
+				//3. Recursively call (Step to inside of the source code of the method.)
+				if(unitDeclaration!=null) {
+					exceptionList.addAll(FindExceptions(unitDeclaration.getBody()));
+				}
+			} 
+			else if (node instanceof VariableDeclarationStatement) {
+				VariableDeclarationStatement nVDS = (VariableDeclarationStatement) node;
+				VariableDeclarationFragment declarationFragment = (VariableDeclarationFragment) nVDS.fragments().get(0);
 
+				Expression initializer = declarationFragment.getInitializer();
+
+				// TODO To detect exception in variable declaration expression.
+			}
+			
+			
+			
+		}
+		return exceptionList;
+		
+	}
+
+	public List<String> FindRuntimeExceptions(MethodInvocation mInvocation) throws JavaModelException {
+		IMethodBinding imb = mInvocation.resolveMethodBinding().getMethodDeclaration();
+		List<String> exceptionList = new ArrayList<>();
+		IMethod imethod = (IMethod) imb.getJavaElement();
+		ISourceRange javadocRange;
+		javadocRange = imethod.getJavadocRange();
+		if (javadocRange != null) {
+			String javadocString = getJavadocFast(imethod);
+			exceptionList.addAll(FindExceptionsInJavadoc(javadocString));
+		}
+
+		return exceptionList;
+
+	}
+	
+	public List<String> FindNonRuntimeExceptions(MethodInvocation mInvocation) throws JavaModelException {
+		IMethodBinding imb = mInvocation.resolveMethodBinding().getMethodDeclaration();
+		List<String> exceptionList = new ArrayList<>();
+		//Add all Non-Runtime exception in try block
+		//Example:  void print() throw XXXException
+		for(ITypeBinding b:imb.getExceptionTypes()) {
+			String str = b.getQualifiedName();
+			if(str.contains(".")) {
+				String ss ;
+				int flag = str.lastIndexOf(".")+1;
+				ss = str.substring(flag, str.length());
+				exceptionList.add(ss);
+				
+			}
+			else {
+				exceptionList.add(str);
+			}
+		
+		}
+		
+		return exceptionList;
+	}
+	
 	
 	@Override
 	public boolean visit(CatchClause node) {
 		
 		//catch exceptions set in try block (init)
-		HashSet<ITypeBinding> tryExceptionSet = new HashSet<ITypeBinding>();
 		HashSet<String> tryExceptionStringSet = new HashSet<String>();
-		
-		
 		
 		// catch exception type
 		ITypeBinding exceptionTypeInCatch = 
@@ -64,80 +140,20 @@ public class CatchClauseVisitor extends ASTVisitor{
 		TryStatement tryStatement = (TryStatement)node.getParent();
 		Block tryBlock = tryStatement.getBody();
 		List<ASTNode> tryBodies = tryBlock.statements();
-		
-		for(ASTNode nn: tryBodies) {
-			// each statement in try
-			if( nn instanceof VariableDeclarationStatement) {
-				VariableDeclarationStatement nVDS = (VariableDeclarationStatement)nn;
-				VariableDeclarationFragment declarationFragment =  (VariableDeclarationFragment) nVDS.fragments().get(0);
-				
-				Expression initializer = declarationFragment.getInitializer();
-
-				//TODO  To detect exception in variable declaration expression.
-			}
-			
-			if (nn instanceof ExpressionStatement) {
-				ExpressionStatement ex = (ExpressionStatement) nn;
-				MethodInvocation mInvocation  = (MethodInvocation)ex.getExpression();
-				IMethodBinding mDeclaration = mInvocation.resolveMethodBinding().getMethodDeclaration();
-				
-				IMethod imethod = (IMethod) mDeclaration.getJavaElement();
-				ISourceRange javadocRange;
-				try {
-					javadocRange = imethod.getJavadocRange();
-					 
-					 if (javadocRange != null) {
-//						 	IBuffer buf= imethod.getOpenable().getBuffer();
-//							String javadocText = buf.getText(javadocRange.getOffset(), javadocRange.getLength());
-//							// comment in javadoc, need to parse exception type.
-						 	
-							String javadocString = getJavadocFast(imethod);
-							
-							tryExceptionStringSet.addAll(FindExceptionsInJavadoc(javadocString));
-						
-							//Add All RunTime exception in try block
-							
-							
-					
-						}
-				} catch (JavaModelException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} 
-				
-				//Add all Non-Runtime exception in try block
-				for(ITypeBinding b:mDeclaration.getExceptionTypes()) {
-					String str = b.getQualifiedName();
-					if(str.contains(".")) {
-						String ss ;
-						int flag = str.lastIndexOf(".")+1;
-						ss = str.substring(flag, str.length());
-						tryExceptionStringSet.add(ss);
-						
-					}
-					else {
-						tryExceptionStringSet.add(str);
-					}
-				
-					tryExceptionSet.add(b);
-				}
-
-			}
-			
+		try {
+			tryExceptionStringSet.addAll(FindExceptions(tryBlock));
+		} catch (JavaModelException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
 		}
+		
 		//to compare exceptions between try and block
 		boolean overcatch = true;
-		
-//		for(ITypeBinding itype : tryExceptionSet) {
-//			if(itype.equals(exceptionTypeInCatch)) {
-//				overcatch = false;
-//			}
-//			
-//		}
-//		
+
 		for(String etype:tryExceptionStringSet) {
 			if(etype.equals(exceptionNameInCatch)) {
 				overcatch = false;
+				break;
 			}
 		}
 		
@@ -145,9 +161,7 @@ public class CatchClauseVisitor extends ASTVisitor{
 		if(overcatch) {
 			overCatches.add(node);
 		}
-		
-		
-		
+
 		//MuitipleLine logs
 		int countOfLog = 0;
 		
@@ -205,18 +219,54 @@ public class CatchClauseVisitor extends ASTVisitor{
 		return javadocText;
 	}
 	
-	
+
+    /**
+     * Creates a new <code>File</code> instance by converting the given
+     * pathname string into an abstract pathname.  If the given string is
+     * the empty string, then the result is the empty abstract pathname.
+     *
+     * @param   pathname  A pathname string
+     * @throws  TestException
+     *          If the <code>pathname</code> argument is <code>null</code>
+     */
 	public List<String> FindExceptionsInJavadoc(String javadocText){
 		List<String> exceptionList = new ArrayList<>();
-		String[] array = javadocText.split(" ");
+		String[] array = javadocText.split("\n");
 		for(int i =0;i<array.length;i++) {
-			if(array[i].equals("@throws")) {
-				exceptionList.add(array[i+1]);
+			if(array[i].contains("@throws")) {
+				String[] temp = array[i].split(" ");
+				for(String ss: temp) {
+					if(ss.contains("Exception")) {
+						exceptionList.add(ss);
+						break;
+					}
+				}
+			
 				
 			}
 		}	
 		return exceptionList;
 	}
+	public MethodDeclaration FindMethodDeclaration(MethodInvocation node) {
+		
+		IMethodBinding binding = (IMethodBinding) node.getName().resolveBinding();
+		ICompilationUnit unit = (ICompilationUnit) binding.getJavaElement().getAncestor( IJavaElement.COMPILATION_UNIT );
+		if ( unit == null ) {
+			return null;
+		   // not available, external declaration
+		}
+		ASTParser parser = ASTParser.newParser( AST.JLS8 );
+		parser.setKind( ASTParser.K_COMPILATION_UNIT );
+		parser.setSource( unit );
+		parser.setResolveBindings( true );
+		CompilationUnit cu = (CompilationUnit) parser.createAST( null );
+		MethodDeclaration decl = (MethodDeclaration)cu.findDeclaringNode( binding.getKey() );
+		System.out.println();
+		return decl;
+		
+		
+	}
+	
 	public HashSet<CatchClause> getDestructiveWrappingCatches() {
 		return destructiveWrappingCatches;
 	}

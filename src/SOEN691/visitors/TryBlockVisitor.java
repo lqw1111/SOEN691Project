@@ -11,6 +11,7 @@ public class TryBlockVisitor extends ASTVisitor{
 	public boolean visit(TryStatement node) {
 		
 		Block block = node.getBody();
+		
 		// TODO Auto-generated method stub
 		return super.visit(node);
 	}
