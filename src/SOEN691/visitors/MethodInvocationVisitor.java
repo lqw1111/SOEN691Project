@@ -25,6 +25,7 @@ public class MethodInvocationVisitor extends ASTVisitor{
 		ITypeBinding type = node.resolveMethodBinding().getDeclaringClass();
 		IMethodBinding linkedDeclaration = node.resolveMethodBinding().getMethodDeclaration();
 		
+		
 		for(MethodDeclaration suspectDeclaration: suspectDeclarations) {
 			if(suspectDeclaration.resolveBinding().getMethodDeclaration().isEqualTo(linkedDeclaration)) {
 				suspectInvocations.add(node);

@@ -76,7 +76,7 @@ public class ExceptionFinder {
 	}
 
 	private void printExceptions(CatchClauseVisitor visitor) {
-		SampleHandler.printMessage("__________________MULTIPLE CATCHES___________________");
+		SampleHandler.printMessage("__________________MULTIPLE LINE CATCHES___________________");
 		for(CatchClause statement: visitor.getMultipleLineLogCatches()) {
 			SampleHandler.printMessage(statement.toString());
 		}

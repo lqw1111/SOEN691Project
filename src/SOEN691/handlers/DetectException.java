@@ -30,6 +30,7 @@ public class DetectException extends AbstractHandler {
 	private void detectInProjects(IProject[] projects) {
 		for(IProject project : projects) {
 			SampleHandler.printMessage("DETECTING IN: " + project.getName());
+			
 			ExceptionFinder exceptionFinder = new ExceptionFinder();
 			
 			try {
