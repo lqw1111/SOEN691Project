@@ -17,21 +17,40 @@ import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.Annotation;
+import org.eclipse.jdt.core.dom.AssertStatement;
 import org.eclipse.jdt.core.dom.Block;
+import org.eclipse.jdt.core.dom.BreakStatement;
 import org.eclipse.jdt.core.dom.CatchClause;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.ConstructorInvocation;
+import org.eclipse.jdt.core.dom.DoStatement;
+import org.eclipse.jdt.core.dom.EmptyStatement;
+import org.eclipse.jdt.core.dom.EnhancedForStatement;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
+import org.eclipse.jdt.core.dom.ForStatement;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
+import org.eclipse.jdt.core.dom.IfStatement;
+import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.Javadoc;
+import org.eclipse.jdt.core.dom.LabeledStatement;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
+import org.eclipse.jdt.core.dom.ReturnStatement;
+import org.eclipse.jdt.core.dom.Statement;
+import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
+import org.eclipse.jdt.core.dom.SwitchCase;
+import org.eclipse.jdt.core.dom.SwitchStatement;
+import org.eclipse.jdt.core.dom.SynchronizedStatement;
 import org.eclipse.jdt.core.dom.ThrowStatement;
 import org.eclipse.jdt.core.dom.TryStatement;
+import org.eclipse.jdt.core.dom.TypeDeclarationStatement;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
+import org.eclipse.jdt.core.dom.WhileStatement;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.core.JavaElement;
 
@@ -55,31 +74,59 @@ public class CatchClauseVisitor extends ASTVisitor{
 		List<ASTNode> bodies = block.statements();
 		
 		for(ASTNode node: bodies) {
-			if (node instanceof ExpressionStatement) {
-				ExpressionStatement ex = (ExpressionStatement) node;
-				MethodInvocation mInvocation = (MethodInvocation) ex.getExpression();
-				MethodDeclaration unitDeclaration = FindMethodDeclaration(mInvocation);
-				
-				//1. Add all runtime exception from javadoc
-				exceptionList.addAll(FindRuntimeExceptions(mInvocation));
-				//2. Add all non-runtime exception from declaration
-				exceptionList.addAll(FindNonRuntimeExceptions(mInvocation));
-				//3. Recursively call (Step to inside of the source code of the method.)
-				if(unitDeclaration!=null) {
-					exceptionList.addAll(FindExceptions(unitDeclaration.getBody()));
-				}
-			} 
-			else if (node instanceof VariableDeclarationStatement) {
-				VariableDeclarationStatement nVDS = (VariableDeclarationStatement) node;
-				VariableDeclarationFragment declarationFragment = (VariableDeclarationFragment) nVDS.fragments().get(0);
-
-				Expression initializer = declarationFragment.getInitializer();
-
-				// TODO To detect exception in variable declaration expression.
-			}
-			
-			
-			
+			exceptionList.addAll(AnalyzeStatement(node));
+//			if (node instanceof ExpressionStatement) {
+//				ExpressionStatement ex = (ExpressionStatement) node;
+//				MethodInvocation mInvocation = (MethodInvocation) ex.getExpression();
+//				MethodDeclaration unitDeclaration = FindMethodDeclaration(mInvocation);
+//				
+//				//1. Add all runtime exception from javadoc
+//				exceptionList.addAll(FindRuntimeExceptions(mInvocation));
+//				//2. Add all non-runtime exception from declaration
+//				exceptionList.addAll(FindNonRuntimeExceptions(mInvocation));
+//				//3. Recursively call (Step to inside of the source code of the method.)
+//				if(unitDeclaration!=null) {
+//					exceptionList.addAll(FindExceptions(unitDeclaration.getBody()));
+//				}
+//			} 
+//			else if(node instanceof IfStatement) {
+//				IfStatement ifStatement = (IfStatement)node;
+//				//if(some method inside)
+//				if(ifStatement.getExpression() instanceof MethodInvocation) {
+//					MethodInvocation mInvocation = (MethodInvocation) ifStatement.getExpression();
+//					MethodDeclaration unitDeclaration = FindMethodDeclaration(mInvocation);
+//					
+//					//1. Add all runtime exception from javadoc
+//					exceptionList.addAll(FindRuntimeExceptions(mInvocation));
+//					//2. Add all non-runtime exception from declaration
+//					exceptionList.addAll(FindNonRuntimeExceptions(mInvocation));
+//					//3. Recursively call (Step to inside of the source code of the method.)
+//					if(unitDeclaration!=null) {
+//						exceptionList.addAll(FindExceptions(unitDeclaration.getBody()));
+//					}
+//				}
+//				else if(ifStatement.getExpression() instanceof InfixExpression){
+//					InfixExpression ie = (InfixExpression)ifStatement.getExpression();
+//					//  xxx(left) == yyy(right)
+//					Expression left = ie.getLeftOperand();
+//					Expression right = ie.getRightOperand();
+//					//TODO check excetpions for left and right
+//				}
+//
+//				
+//			
+//				
+//				
+//			}
+//			else if (node instanceof VariableDeclarationStatement) {
+//				VariableDeclarationStatement nVDS = (VariableDeclarationStatement) node;
+//				VariableDeclarationFragment declarationFragment = (VariableDeclarationFragment) nVDS.fragments().get(0);
+//
+//				Expression initializer = declarationFragment.getInitializer();
+//
+//				// TODO To detect exception in variable declaration expression.
+//			}
+//	
 		}
 		return exceptionList;
 		
@@ -95,7 +142,6 @@ public class CatchClauseVisitor extends ASTVisitor{
 			String javadocString = getJavadocFast(imethod);
 			exceptionList.addAll(FindExceptionsInJavadoc(javadocString));
 		}
-
 		return exceptionList;
 
 	}
@@ -265,6 +311,160 @@ public class CatchClauseVisitor extends ASTVisitor{
 		return decl;
 		
 		
+	}
+	
+	public List<String> AnalyzeExpression(Expression ex) throws JavaModelException{
+		if(ex == null) {
+			return null;
+		}
+		List<String> exceptionList = new ArrayList<String>();
+		MethodInvocation mInvocation;
+		try {
+			mInvocation = (MethodInvocation) ex;
+		}
+		catch(Exception e) {
+			return new ArrayList<String>();
+		}
+		
+		MethodDeclaration unitDeclaration = FindMethodDeclaration(mInvocation);
+		//1. Add all runtime exception from javadoc
+		exceptionList.addAll(FindRuntimeExceptions(mInvocation));
+		//2. Add all non-runtime exception from declaration
+		exceptionList.addAll(FindNonRuntimeExceptions(mInvocation));
+		//3. Recursively call (Step to inside of the source code of the method.)
+		if(unitDeclaration!=null) {
+			exceptionList.addAll(FindExceptions(unitDeclaration.getBody()));
+		}
+		return exceptionList;
+	}
+	
+	
+	
+	public List<String> AnalyzeStatement(ASTNode node) throws JavaModelException{
+		List<String> exceptionList = new ArrayList<String>();
+		if(node instanceof AssertStatement) {
+			AssertStatement as = (AssertStatement)node;
+			exceptionList.addAll(AnalyzeExpression(as.getExpression()));
+			exceptionList.addAll(AnalyzeExpression(as.getMessage()));
+			//need to confirm
+		}
+		else if(node instanceof Block) {
+			Block block = (Block)node;
+			List<ASTNode> nodes = block.statements();
+			for(ASTNode n:nodes) {
+				exceptionList.addAll(AnalyzeStatement(n));
+			}
+		}
+		else if(node instanceof BreakStatement) {
+			//nothing to detect.
+		}
+		else if(node instanceof ConstructorInvocation) {
+			ConstructorInvocation ci = (ConstructorInvocation)node;
+			List<Expression> list = ci.arguments();
+			for(Expression ex:list) {
+				exceptionList.addAll(AnalyzeExpression(ex));
+			}
+			//need to confirm
+		}
+		else if(node instanceof DoStatement) {
+			DoStatement ds = (DoStatement)node;
+			Expression ex = ds.getExpression();
+			exceptionList.addAll(AnalyzeExpression(ex));
+			Statement body = ds.getBody();
+			exceptionList.addAll(AnalyzeStatement(body));
+			
+		}
+		else if(node instanceof EmptyStatement) {
+			//nothing to detect.
+		}
+		else if(node instanceof EnhancedForStatement) {
+			EnhancedForStatement ef = (EnhancedForStatement)node;
+			exceptionList.addAll(AnalyzeStatement(ef.getBody()));
+			exceptionList.addAll(AnalyzeExpression(ef.getExpression()));
+			
+		}
+		else if(node instanceof ExpressionStatement) {
+			ExpressionStatement es = (ExpressionStatement)node;
+			exceptionList.addAll(AnalyzeExpression(es.getExpression()));
+		}
+		else if(node instanceof ForStatement) {
+			
+			ForStatement fs = (ForStatement)node;
+			exceptionList.addAll(AnalyzeStatement(fs.getBody()));
+			exceptionList.addAll(AnalyzeExpression(fs.getExpression()));
+		}
+		else if(node instanceof IfStatement) {
+			IfStatement is = (IfStatement)node;
+			exceptionList.addAll(AnalyzeExpression(is.getExpression()));
+			exceptionList.addAll(AnalyzeStatement(is.getElseStatement()));
+			exceptionList.addAll(AnalyzeStatement(is.getThenStatement()));
+		}
+		else if(node instanceof LabeledStatement) {
+			LabeledStatement ls = (LabeledStatement)node;
+			exceptionList.addAll(AnalyzeStatement(ls.getLabel()));
+			exceptionList.addAll(AnalyzeStatement(ls.getBody()));
+		}
+		else if(node instanceof ReturnStatement) {
+			ReturnStatement rs = (ReturnStatement)node;
+			exceptionList.addAll(AnalyzeExpression(rs.getExpression()));
+		}
+		else if(node instanceof SuperConstructorInvocation) {
+			SuperConstructorInvocation sci = (SuperConstructorInvocation)node;
+			exceptionList.addAll(AnalyzeExpression(sci.getExpression()));
+			List<Expression> args = sci.arguments();
+			for(Expression ex :args) {
+				exceptionList.addAll(AnalyzeExpression(ex));
+			}
+			
+		}
+		else if(node instanceof SwitchCase) {
+			SwitchCase sc = (SwitchCase)node;
+			exceptionList.addAll(AnalyzeExpression(sc.getExpression()));
+			
+		}
+		else if(node instanceof SynchronizedStatement) {
+			SynchronizedStatement ss = (SynchronizedStatement)node;
+			exceptionList.addAll(AnalyzeExpression(ss.getExpression()));
+			exceptionList.addAll(AnalyzeStatement(ss.getBody()));
+		}
+		else if(node instanceof SwitchStatement) {
+			SwitchStatement ss = (SwitchStatement)node;
+			exceptionList.addAll(AnalyzeExpression(ss.getExpression()));
+			
+			List<Statement> list = ss.statements();
+			for(Statement s:list) {
+				exceptionList.addAll(AnalyzeStatement(s));
+			}
+			
+		}
+		else if(node instanceof ThrowStatement) {
+			ThrowStatement ts = (ThrowStatement)node;
+			exceptionList.addAll(AnalyzeExpression(ts.getExpression()));
+		}
+		else if(node instanceof TryStatement) {
+			TryStatement ts = (TryStatement)node;
+			//nothing to do
+		}
+		else if(node instanceof TypeDeclarationStatement) {
+			TypeDeclarationStatement tds = (TypeDeclarationStatement)node;
+			//TODO ??
+			//https://help.eclipse.org/luna/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Freference%2Fapi%2Forg%2Feclipse%2Fjdt%2Fcore%2Fdom%2FStatement.html
+		}
+		else if(node instanceof VariableDeclarationStatement) {
+			VariableDeclarationStatement vds = (VariableDeclarationStatement)node;
+			List<VariableDeclarationFragment> list = vds.fragments();
+			//TODO
+			//https://help.eclipse.org/luna/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Freference%2Fapi%2Forg%2Feclipse%2Fjdt%2Fcore%2Fdom%2FStatement.html
+			
+		}
+		else if(node instanceof WhileStatement) {
+			WhileStatement ws = (WhileStatement)node;
+			exceptionList.addAll(AnalyzeExpression(ws.getExpression()));
+			exceptionList.addAll(AnalyzeStatement(ws.getBody()));
+			
+		}
+
+		return exceptionList;
 	}
 	
 	public HashSet<CatchClause> getDestructiveWrappingCatches() {
