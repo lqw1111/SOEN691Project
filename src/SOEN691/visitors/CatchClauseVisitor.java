@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.jdt.core.Flags;
 import org.eclipse.jdt.core.IBuffer;
@@ -17,21 +18,68 @@ import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.Annotation;
+import org.eclipse.jdt.core.dom.ArrayAccess;
+import org.eclipse.jdt.core.dom.ArrayCreation;
+import org.eclipse.jdt.core.dom.ArrayInitializer;
+import org.eclipse.jdt.core.dom.AssertStatement;
+import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.Block;
+import org.eclipse.jdt.core.dom.BooleanLiteral;
+import org.eclipse.jdt.core.dom.BreakStatement;
+import org.eclipse.jdt.core.dom.CastExpression;
 import org.eclipse.jdt.core.dom.CatchClause;
+import org.eclipse.jdt.core.dom.CharacterLiteral;
+import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.ConditionalExpression;
+import org.eclipse.jdt.core.dom.ConstructorInvocation;
+import org.eclipse.jdt.core.dom.CreationReference;
+import org.eclipse.jdt.core.dom.DoStatement;
+import org.eclipse.jdt.core.dom.EmptyStatement;
+import org.eclipse.jdt.core.dom.EnhancedForStatement;
 import org.eclipse.jdt.core.dom.Expression;
+import org.eclipse.jdt.core.dom.ExpressionMethodReference;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
+import org.eclipse.jdt.core.dom.FieldAccess;
+import org.eclipse.jdt.core.dom.ForStatement;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
+import org.eclipse.jdt.core.dom.IfStatement;
+import org.eclipse.jdt.core.dom.InfixExpression;
+import org.eclipse.jdt.core.dom.InstanceofExpression;
 import org.eclipse.jdt.core.dom.Javadoc;
+import org.eclipse.jdt.core.dom.LabeledStatement;
+import org.eclipse.jdt.core.dom.LambdaExpression;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
+import org.eclipse.jdt.core.dom.MethodReference;
+import org.eclipse.jdt.core.dom.Name;
+import org.eclipse.jdt.core.dom.NullLiteral;
+import org.eclipse.jdt.core.dom.NumberLiteral;
+import org.eclipse.jdt.core.dom.ParenthesizedExpression;
+import org.eclipse.jdt.core.dom.PostfixExpression;
+import org.eclipse.jdt.core.dom.PrefixExpression;
+import org.eclipse.jdt.core.dom.ReturnStatement;
+import org.eclipse.jdt.core.dom.Statement;
+import org.eclipse.jdt.core.dom.StringLiteral;
+import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
+import org.eclipse.jdt.core.dom.SuperFieldAccess;
+import org.eclipse.jdt.core.dom.SuperMethodInvocation;
+import org.eclipse.jdt.core.dom.SuperMethodReference;
+import org.eclipse.jdt.core.dom.SwitchCase;
+import org.eclipse.jdt.core.dom.SwitchStatement;
+import org.eclipse.jdt.core.dom.SynchronizedStatement;
+import org.eclipse.jdt.core.dom.ThisExpression;
 import org.eclipse.jdt.core.dom.ThrowStatement;
 import org.eclipse.jdt.core.dom.TryStatement;
+import org.eclipse.jdt.core.dom.TypeDeclarationStatement;
+import org.eclipse.jdt.core.dom.TypeLiteral;
+import org.eclipse.jdt.core.dom.TypeMethodReference;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
+import org.eclipse.jdt.core.dom.WhileStatement;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.core.JavaElement;
 
@@ -49,41 +97,24 @@ public class CatchClauseVisitor extends ASTVisitor{
 		indebtCatches.addAll(previouslyFoundCatches);
 	}
 	
-	public List<String> FindExceptions(Block block) throws JavaModelException {
-		List<String> exceptionList = new ArrayList<String>();
-		
-		List<ASTNode> bodies = block.statements();
-		
-		for(ASTNode node: bodies) {
-			if (node instanceof ExpressionStatement) {
-				ExpressionStatement ex = (ExpressionStatement) node;
-				MethodInvocation mInvocation = (MethodInvocation) ex.getExpression();
-				MethodDeclaration unitDeclaration = FindMethodDeclaration(mInvocation);
-				
-				//1. Add all runtime exception from javadoc
-				exceptionList.addAll(FindRuntimeExceptions(mInvocation));
-				//2. Add all non-runtime exception from declaration
-				exceptionList.addAll(FindNonRuntimeExceptions(mInvocation));
-				//3. Recursively call (Step to inside of the source code of the method.)
-				if(unitDeclaration!=null) {
-					exceptionList.addAll(FindExceptions(unitDeclaration.getBody()));
-				}
-			} 
-			else if (node instanceof VariableDeclarationStatement) {
-				VariableDeclarationStatement nVDS = (VariableDeclarationStatement) node;
-				VariableDeclarationFragment declarationFragment = (VariableDeclarationFragment) nVDS.fragments().get(0);
-
-				Expression initializer = declarationFragment.getInitializer();
-
-				// TODO To detect exception in variable declaration expression.
-			}
-			
-			
-			
-		}
-		return exceptionList;
-		
-	}
+//	public List<String> FindExceptions(Block block) throws JavaModelException {
+//		
+//		List<String> exceptionList = new ArrayList<String>();
+//		if(block == null) {
+//			return exceptionList;
+//		}
+//		
+//		
+//		
+//		List<ASTNode> bodies = block.statements();
+//		
+//		for(ASTNode node: bodies) {
+//			exceptionList.addAll(AnalyzeStatement(node));
+//
+//		}
+//		return exceptionList;
+//		
+//	}
 
 	public List<String> FindRuntimeExceptions(MethodInvocation mInvocation) throws JavaModelException {
 		IMethodBinding imb = mInvocation.resolveMethodBinding().getMethodDeclaration();
@@ -95,7 +126,21 @@ public class CatchClauseVisitor extends ASTVisitor{
 			String javadocString = getJavadocFast(imethod);
 			exceptionList.addAll(FindExceptionsInJavadoc(javadocString));
 		}
+		return exceptionList;
 
+	}
+	public List<String> FindRuntimeExceptions(IMethodBinding imb ) throws JavaModelException {
+		List<String> exceptionList = new ArrayList<>();
+		IMethod imethod = (IMethod) imb.getJavaElement();
+		if(imethod == null) {
+			return exceptionList;
+		}
+		ISourceRange javadocRange;
+		javadocRange = imethod.getJavadocRange();
+		if (javadocRange != null) {
+			String javadocString = getJavadocFast(imethod);
+			exceptionList.addAll(FindExceptionsInJavadoc(javadocString));
+		}
 		return exceptionList;
 
 	}
@@ -122,13 +167,34 @@ public class CatchClauseVisitor extends ASTVisitor{
 		
 		return exceptionList;
 	}
+	public List<String> FindNonRuntimeExceptions(IMethodBinding imb) throws JavaModelException {
+		List<String> exceptionList = new ArrayList<>();
+		//Add all Non-Runtime exception in try block
+		//Example:  void print() throw XXXException
+		for(ITypeBinding b:imb.getExceptionTypes()) {
+			String str = b.getQualifiedName();
+			if(str.contains(".")) {
+				String ss ;
+				int flag = str.lastIndexOf(".")+1;
+				ss = str.substring(flag, str.length());
+				exceptionList.add(ss);
+				
+			}
+			else {
+				exceptionList.add(str);
+			}
+		
+		}
+		
+		return exceptionList;
+	}
 	
 	
 	@Override
 	public boolean visit(CatchClause node) {
 		
 		//catch exceptions set in try block (init)
-		HashSet<String> tryExceptionStringSet = new HashSet<String>();
+//		HashSet<String> tryExceptionStringSet = new HashSet<String>();
 		
 		// catch exception type
 		ITypeBinding exceptionTypeInCatch = 
@@ -139,18 +205,18 @@ public class CatchClauseVisitor extends ASTVisitor{
 		// get try block
 		TryStatement tryStatement = (TryStatement)node.getParent();
 		Block tryBlock = tryStatement.getBody();
-		List<ASTNode> tryBodies = tryBlock.statements();
-		try {
-			tryExceptionStringSet.addAll(FindExceptions(tryBlock));
-		} catch (JavaModelException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+		MethodInvocationInTryVisitor mVisitor = new MethodInvocationInTryVisitor();
 		
+		tryBlock.accept(mVisitor);
+		//result of exceptions in tryBlock is in mVisitor.ResultExceptionSet
+		//All exception 
+		
+
+
 		//to compare exceptions between try and block
 		boolean overcatch = true;
 
-		for(String etype:tryExceptionStringSet) {
+		for(String etype:mVisitor.ResultExceptionSet) {
 			if(etype.equals(exceptionNameInCatch)) {
 				overcatch = false;
 				break;
@@ -165,21 +231,25 @@ public class CatchClauseVisitor extends ASTVisitor{
 		//MuitipleLine logs
 		int countOfLog = 0;
 		
-		MethodInvocationVisitor visitMethodInvocation = new MethodInvocationVisitor();
 		Block block = node.getBody();
 
 		List<ASTNode> bodies = block.statements();
 		for(ASTNode nn: bodies) {
 			if (nn instanceof ExpressionStatement) {
 				ExpressionStatement ex = (ExpressionStatement) nn;
-				MethodInvocation mInvocation  = (MethodInvocation)ex.getExpression();
-				
-				ITypeBinding type = mInvocation.resolveMethodBinding().getDeclaringClass();
-				
-				
-				
-				if (type.getQualifiedName().contentEquals("java.util.logging.Logger")) {
-					countOfLog++;
+				if(ex.getExpression() instanceof MethodInvocation) {
+					MethodInvocation mInvocation  = (MethodInvocation)ex.getExpression();
+					
+					ITypeBinding type = mInvocation.resolveMethodBinding().getDeclaringClass();
+					
+					
+					
+					if (type.getQualifiedName().contentEquals("java.util.logging.Logger")) {
+						String name = mInvocation.getName().toString();
+						if(CheckLogLevel(name))
+							countOfLog++;
+					}
+					
 				}
 				
 			}
@@ -199,6 +269,45 @@ public class CatchClauseVisitor extends ASTVisitor{
 	public HashSet<CatchClause> getMultipleLineLogCatches() {
 		return multipleLineCatches;
 	}
+	
+	public  boolean CheckLogLevel(String name) {
+		if(name.equals("info")) {
+			return true;
+		}
+		if(name.equals("warning")) {
+			return true;
+		}
+		if(name.equals("severe")) {
+			return true;
+		}
+		if(name.equals("log")) {
+			return true;
+		}
+		if(name.equals("finest")) {
+			return true;
+		}
+		if(name.equals("finer")) {
+			return true;
+		}
+		if(name.equals("fine")) {
+			return true;
+		}
+		if(name.equals("exiting")) {
+			return true;
+		}
+		if(name.equals("entering")) {
+			return true;
+		}
+		if(name.equals("config")) {
+			return true;
+		}
+		if(name.equals("debug")) {
+			return true;
+		}
+		return false;
+		
+	}
+	
 	
 	private static String getJavadocFast(IMember member) throws JavaModelException {
 		IBuffer buffer = member.getOpenable().getBuffer();
@@ -261,12 +370,42 @@ public class CatchClauseVisitor extends ASTVisitor{
 		parser.setResolveBindings( true );
 		CompilationUnit cu = (CompilationUnit) parser.createAST( null );
 		MethodDeclaration decl = (MethodDeclaration)cu.findDeclaringNode( binding.getKey() );
-		System.out.println();
+		
 		return decl;
 		
 		
 	}
 	
+	public MethodDeclaration FindMethodDeclaration(IMethodBinding binding ) {
+		if(binding == null) {
+			return null;
+		}
+		IJavaElement ije = binding.getJavaElement();
+		if(ije == null) {
+			return null;
+		}
+		Object obj = ije.getAncestor( IJavaElement.COMPILATION_UNIT );
+		
+		ICompilationUnit unit;
+		if(obj != null) {
+			unit = (ICompilationUnit)obj;
+		}
+		else {
+			return null;
+		}
+
+		ASTParser parser = ASTParser.newParser( AST.JLS8 );
+		parser.setKind( ASTParser.K_COMPILATION_UNIT );
+		parser.setSource( unit );
+		parser.setResolveBindings( true );
+		CompilationUnit cu = (CompilationUnit) parser.createAST( null );
+		MethodDeclaration decl = (MethodDeclaration)cu.findDeclaringNode( binding.getKey() );
+		
+		return decl;
+		
+		
+	}
+
 	public HashSet<CatchClause> getDestructiveWrappingCatches() {
 		return destructiveWrappingCatches;
 	}

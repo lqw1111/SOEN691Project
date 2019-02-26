@@ -2,6 +2,8 @@ package SOEN691.patterns;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
+
 import org.eclipse.core.resources.IProject;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.*;
@@ -9,6 +11,8 @@ import org.eclipse.jdt.core.dom.*;
 
 import SOEN691.handlers.SampleHandler;
 import SOEN691.visitors.CatchClauseVisitor;
+import SOEN691.visitors.MethodInvocationVisitor;
+import SOEN691.visitors.Node;
 
 public class ExceptionFinder {
 	HashMap<MethodDeclaration, String> suspectMethods = new HashMap<>();
@@ -16,6 +20,12 @@ public class ExceptionFinder {
 	HashSet<MethodDeclaration> multiLineLogCatchMethod = new HashSet<>();
 	HashSet<MethodDeclaration> destructiveWrappingMethod = new HashSet<>();
 	HashSet<MethodDeclaration> overCatchMethod = new HashSet<>();
+	
+	public static HashMap<Node,Set<Node>> CallGraph = new HashMap<Node,Set<Node>>();
+	
+	public static HashMap<Node,Set<String>> ExceptionMap = new HashMap<>();
+	
+	
 
 	public HashMap<MethodDeclaration, String> getSuspectMethods() {
 		return suspectMethods;
@@ -23,15 +33,29 @@ public class ExceptionFinder {
 
 	public void findExceptions(IProject project) throws JavaModelException {
 		IPackageFragment[] packages = JavaCore.create(project).getPackageFragments();
-
+		//Find all methodinvocation and create call graph
 		for(IPackageFragment mypackage : packages){
-			findTargetCatchClauses(mypackage);
+		
+//			findTargetCatchClauses(mypackage);
+			
+			findAllMehodInvocation(mypackage);
 		}
+		
+		//analyze 3 anti-patterns.
+		for(IPackageFragment mypackage : packages){
+			
+			findTargetCatchClauses(mypackage);
+			
+//			findAllMehodInvocation(mypackage);
+		}
+		System.out.println("finish.");
+
+
 	}
 
 	private void findTargetCatchClauses(IPackageFragment packageFragment) throws JavaModelException {
 
-
+		
 		for (ICompilationUnit unit : packageFragment.getCompilationUnits()) {
 			CompilationUnit parsedCompilationUnit = parse(unit);
 
@@ -40,7 +64,20 @@ public class ExceptionFinder {
 
 //			printExceptions(exceptionVisitor);
 			getMethodsWithTargetCatchClauses(exceptionVisitor);
+			
 		}
+	}
+	private void findAllMehodInvocation(IPackageFragment packageFragment) throws JavaModelException {
+
+
+		for (ICompilationUnit unit : packageFragment.getCompilationUnits()) {
+			CompilationUnit parsedCompilationUnit = parse(unit);
+			
+			MethodInvocationVisitor methodInvocationVisitor = new MethodInvocationVisitor();
+			parsedCompilationUnit.accept(methodInvocationVisitor);
+
+		}
+
 	}
 	
 	private void getMethodsWithTargetCatchClauses(CatchClauseVisitor catchClauseVisitor) {
