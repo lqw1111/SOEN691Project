@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-
 import org.eclipse.jdt.core.IBuffer;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaElement;
@@ -28,21 +27,28 @@ import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.PackageDeclaration;
 import org.eclipse.jdt.core.dom.TryStatement;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
-import SOEN691.patterns.ExceptionFinder;
-public class MethodInvocationVisitor extends ASTVisitor{
+
+public class MethodInvocationInTryVisitor extends ASTVisitor{
 	Set<MethodDeclaration> suspectDeclarations = new HashSet<MethodDeclaration>();
 	HashSet<MethodInvocation> suspectInvocations = new HashSet<MethodInvocation>();
 	
 	
-
-
-	public MethodInvocationVisitor(Set<MethodDeclaration> suspectDeclarations) {
+	public static HashMap<Node,Set<Node>> CallGraph = new HashMap<Node,Set<Node>>();
+	
+	public static HashMap<Node,Set<String>> ExceptionMap = new HashMap<>();
+	
+	public Set<String> ResultExceptionSet;
+	
+	
+	public static HashMap<Block,Set<MethodDeclaration>> tryMap = new HashMap<>();
+	public MethodInvocationInTryVisitor(Set<MethodDeclaration> suspectDeclarations) {
 		this.suspectDeclarations = suspectDeclarations;
 	}
 
 	
-	public  MethodInvocationVisitor() {
+	public  MethodInvocationInTryVisitor() {
 		// TODO Auto-generated constructor stub
+		ResultExceptionSet = new HashSet<String>();
 	}
 	
 	@Override
@@ -58,90 +64,34 @@ public class MethodInvocationVisitor extends ASTVisitor{
 		String methodNameCalled = imbCalled.toString();
 		String packageNameCalled = ipbCalled.getName();
 		Node nodeCalled = new Node(methodNameCalled, classNameCalled, packageNameCalled);
-
-		//itb, imb, ipb  called method.
+		if(!SOEN691.patterns.ExceptionFinder.CallGraph.containsKey(nodeCalled)) {
+			return super.visit(node);
+		}
+		Set<Node> calledNodeSet = new HashSet<Node>();
+		calledNodeSet.add(nodeCalled);
+		calledNodeSet = SOEN691.patterns.ExceptionFinder.CallGraph.get(nodeCalled);
 		
-		// find call method ->
-		ASTNode astNode = node;
-		MethodDeclaration callMD = null ;
-		Block tryBlock = null;
-		while(true) {
-			
-			if(astNode instanceof MethodDeclaration) {
-				callMD = (MethodDeclaration)astNode;
-				break;
-				
-				
-			}
-			else if(astNode instanceof TypeDeclaration) {
-				return super.visit(node);//to check
-			}		
-			astNode = astNode.getParent();
-
-		}
 		
-		IMethodBinding imbCall = callMD.resolveBinding();
-		ITypeBinding itbCall = callMD.resolveBinding().getDeclaringClass();
-		IPackageBinding ipbCall = callMD.resolveBinding().getDeclaringClass().getPackage();
-		
-		String classNameCall = itbCall.getName();
-		String methodNameCall = imbCall.toString();
-		String packageNameCall = ipbCall.getName();
-		Node nodeCall = new Node(methodNameCall, classNameCall, packageNameCall);
-
-		
-		if(SOEN691.patterns.ExceptionFinder.CallGraph.containsKey(nodeCall)) {
-			Set<Node> adjCall = new HashSet<Node>();
-			adjCall = SOEN691.patterns.ExceptionFinder.CallGraph.get(nodeCall);
-			adjCall.add(nodeCalled);
-			SOEN691.patterns.ExceptionFinder.CallGraph.put(nodeCall, adjCall);
-			
-		}
-		else {
-			Set<Node> adjCall = new HashSet<Node>();
-			adjCall.add(nodeCalled);
-			SOEN691.patterns.ExceptionFinder.CallGraph.put(nodeCall, adjCall);
-		}
-
-		Set<String> setExceptionCall = new HashSet<String>();
-		Set<String> setExceptionCalled = new HashSet<String>();
-		try {
-			setExceptionCall.addAll(FindNonRuntimeExceptions(imbCall));
-			setExceptionCall.addAll(FindRuntimeExceptions(imbCall));
-			
-			setExceptionCalled.addAll(FindNonRuntimeExceptions(imbCalled));
-			setExceptionCalled.addAll(FindRuntimeExceptions(imbCalled));
-		}
-		catch(JavaModelException ex) {
-			
-		}
-
-		if(SOEN691.patterns.ExceptionFinder.ExceptionMap.containsKey(nodeCalled)) {
-			Set<String> tempSet = new HashSet<String>();
-			tempSet = SOEN691.patterns.ExceptionFinder.ExceptionMap.get(nodeCalled);
-			tempSet.addAll(setExceptionCalled);
-			SOEN691.patterns.ExceptionFinder.ExceptionMap.put(nodeCalled, tempSet);
-		}
-		else {
-
-			SOEN691.patterns.ExceptionFinder.ExceptionMap.put(nodeCalled, setExceptionCalled);
-			
-		}
-
-		if(SOEN691.patterns.ExceptionFinder.ExceptionMap.containsKey(nodeCall)) {
-			Set<String> tempSet = new HashSet<String>();
-			tempSet = SOEN691.patterns.ExceptionFinder.ExceptionMap.get(nodeCall);
-			tempSet.addAll(setExceptionCall);
-			SOEN691.patterns.ExceptionFinder.ExceptionMap.put(nodeCall, tempSet);
-		}
-		else {
-
-			SOEN691.patterns.ExceptionFinder.ExceptionMap.put(nodeCall, setExceptionCall);
-			
-		}
-		
-
+		Set<String> exceptionSet = new HashSet<String>();
+		exceptionSet = FindAllExceptions(calledNodeSet);
+		this.ResultExceptionSet = exceptionSet;
 		return super.visit(node);
+	}
+	
+	public Set<String> FindAllExceptions(Set<Node> set) {
+		Set<String> res = new HashSet<String>();
+		
+		for(Node node:set) {
+			res.addAll(SOEN691.patterns.ExceptionFinder.ExceptionMap.get(node));
+			
+		}
+		
+		
+		
+		
+		return res;
+		
+		
 	}
 	
 	public MethodDeclaration FindMethodDeclaration(IMethodBinding binding ) {

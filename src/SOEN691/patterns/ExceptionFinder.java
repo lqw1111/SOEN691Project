@@ -2,6 +2,8 @@ package SOEN691.patterns;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
+
 import org.eclipse.core.resources.IProject;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.*;
@@ -19,6 +21,11 @@ public class ExceptionFinder {
 	HashSet<MethodDeclaration> destructiveWrappingMethod = new HashSet<>();
 	HashSet<MethodDeclaration> overCatchMethod = new HashSet<>();
 	
+	public static HashMap<Node,Set<Node>> CallGraph = new HashMap<Node,Set<Node>>();
+	
+	public static HashMap<Node,Set<String>> ExceptionMap = new HashMap<>();
+	
+	
 
 	public HashMap<MethodDeclaration, String> getSuspectMethods() {
 		return suspectMethods;
@@ -26,13 +33,15 @@ public class ExceptionFinder {
 
 	public void findExceptions(IProject project) throws JavaModelException {
 		IPackageFragment[] packages = JavaCore.create(project).getPackageFragments();
-		
+		//Find all methodinvocation and create call graph
 		for(IPackageFragment mypackage : packages){
 		
 //			findTargetCatchClauses(mypackage);
 			
 			findAllMehodInvocation(mypackage);
 		}
+		
+		//analyze 3 anti-patterns.
 		for(IPackageFragment mypackage : packages){
 			
 			findTargetCatchClauses(mypackage);
@@ -40,11 +49,7 @@ public class ExceptionFinder {
 //			findAllMehodInvocation(mypackage);
 		}
 		System.out.println("finish.");
-		System.out.println(SOEN691.visitors.MethodInvocationVisitor.MethodDeclarationSet);
-		for(Node n : SOEN691.visitors.MethodInvocationVisitor.MethodDeclarationSet) {
-			System.out.println(n.toString());
-		}
-		System.out.println(SOEN691.visitors.MethodInvocationVisitor.exceptionMap);
+
 
 	}
 
@@ -58,7 +63,7 @@ public class ExceptionFinder {
 			parsedCompilationUnit.accept(exceptionVisitor);
 
 //			printExceptions(exceptionVisitor);
-//			getMethodsWithTargetCatchClauses(exceptionVisitor);
+			getMethodsWithTargetCatchClauses(exceptionVisitor);
 			
 		}
 	}
