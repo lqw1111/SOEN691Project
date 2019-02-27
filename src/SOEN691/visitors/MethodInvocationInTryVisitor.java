@@ -63,6 +63,8 @@ public class MethodInvocationInTryVisitor extends ASTVisitor{
 		String classNameCalled = itbCalled.getName();
 		String methodNameCalled = imbCalled.toString();
 		String packageNameCalled = ipbCalled.getName();
+		
+	
 		Node nodeCalled = new Node(methodNameCalled, classNameCalled, packageNameCalled);
 		if(!SOEN691.patterns.ExceptionFinder.CallGraph.containsKey(nodeCalled)) {
 			return super.visit(node);
@@ -82,7 +84,8 @@ public class MethodInvocationInTryVisitor extends ASTVisitor{
 		
 		Set<String> exceptionSet = new HashSet<String>();
 		exceptionSet = FindAllExceptions(calledNodeSet);
-		this.ResultExceptionSet = exceptionSet;
+//		this.ResultExceptionSet = exceptionSet;
+		this.ResultExceptionSet.addAll(exceptionSet);
 		return super.visit(node);
 	}
 	

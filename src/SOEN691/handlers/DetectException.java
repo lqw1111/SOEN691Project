@@ -12,6 +12,12 @@ import org.eclipse.core.commands.ExecutionException;
 
 
 public class DetectException extends AbstractHandler {
+	
+	int CountOfMethodInvocation = 0;
+	int CountOfCatchBlock = 0;
+	public int CountOfOverCatch = 0;
+	public int CountOfWrap = 0;
+	public int CountOfMultipleLine = 0;
 
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
@@ -22,6 +28,13 @@ public class DetectException extends AbstractHandler {
 		
 		detectInProjects(projects);
 		
+	
+		SampleHandler.printMessage("MethodInvocation detected: "+CountOfMethodInvocation);
+		SampleHandler.printMessage("CatchClause detected: "+CountOfCatchBlock);
+		SampleHandler.printMessage("Multipleline Log detected: "+CountOfMultipleLine);
+		SampleHandler.printMessage("Destructive Wrapping detected: "+CountOfWrap);
+		SampleHandler.printMessage("Over-catch detected: "+CountOfOverCatch);
+
 		SampleHandler.printMessage("DONE DETECTING");
 		
 		return null;
@@ -31,8 +44,10 @@ public class DetectException extends AbstractHandler {
 		for(IProject project : projects) {
 			SampleHandler.printMessage("DETECTING IN: " + project.getName());
 			
-			ExceptionFinder exceptionFinder = new ExceptionFinder();
 			
+			
+			ExceptionFinder exceptionFinder = new ExceptionFinder();
+
 			try {
 				// find the exceptions and their methods
 				exceptionFinder.findExceptions(project);
@@ -41,6 +56,12 @@ public class DetectException extends AbstractHandler {
 			} catch (JavaModelException e) {
 				e.printStackTrace();
 			}	
+			
+			CountOfMethodInvocation = CountOfMethodInvocation + exceptionFinder.CountOfMethodInvocation;
+			CountOfCatchBlock = CountOfCatchBlock + exceptionFinder.CountOfCatchBlock;
+			CountOfMultipleLine = CountOfMultipleLine + exceptionFinder.CountOfMultipleLine;
+			CountOfOverCatch = CountOfOverCatch + exceptionFinder.CountOfOverCatch;
+			CountOfWrap = CountOfWrap + exceptionFinder.CountOfWrap;
 	}
 	}
 }
