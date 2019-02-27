@@ -16,6 +16,11 @@ import SOEN691.visitors.Node;
 
 public class ExceptionFinder {
 	HashMap<MethodDeclaration, String> suspectMethods = new HashMap<>();
+	public int CountOfMethodInvocation = 0;
+	public int CountOfCatchBlock = 0;
+	public int CountOfOverCatch = 0;
+	public int CountOfWrap = 0;
+	public int CountOfMultipleLine = 0;
 	
 	HashSet<MethodDeclaration> multiLineLogCatchMethod = new HashSet<>();
 	HashSet<MethodDeclaration> destructiveWrappingMethod = new HashSet<>();
@@ -64,6 +69,7 @@ public class ExceptionFinder {
 
 //			printExceptions(exceptionVisitor);
 			getMethodsWithTargetCatchClauses(exceptionVisitor);
+			CountOfCatchBlock = CountOfCatchBlock +exceptionVisitor.countOfCatchBlock;
 			
 		}
 	}
@@ -75,6 +81,7 @@ public class ExceptionFinder {
 			
 			MethodInvocationVisitor methodInvocationVisitor = new MethodInvocationVisitor();
 			parsedCompilationUnit.accept(methodInvocationVisitor);
+			CountOfMethodInvocation = CountOfMethodInvocation + methodInvocationVisitor.countOfMethodInvocation;
 
 		}
 
@@ -82,22 +89,23 @@ public class ExceptionFinder {
 	
 	private void getMethodsWithTargetCatchClauses(CatchClauseVisitor catchClauseVisitor) {
 		
-		for(CatchClause multiLineCatch: catchClauseVisitor.getMultipleLineLogCatches()) {
-			multiLineLogCatchMethod.add(findMethodForCatch(multiLineCatch));
-			suspectMethods.put(findMethodForCatch(multiLineCatch), "MultiLineLogCatch");
-		}
-		
-		for(CatchClause destructiveWrappingCatch: catchClauseVisitor.getDestructiveWrappingCatches()) {
-			destructiveWrappingMethod.add(findMethodForCatch(destructiveWrappingCatch));
-			suspectMethods.put(findMethodForCatch(destructiveWrappingCatch), "destructiveWrappingCatch");
-		}
-		
-		for(CatchClause overCatch: catchClauseVisitor.getOverCatches()) {
-			overCatchMethod.add(findMethodForCatch(overCatch));
-			suspectMethods.put(findMethodForCatch(overCatch), "overCatch");
-		}
-		
-		printInvocations();
+//		for(CatchClause multiLineCatch: catchClauseVisitor.getMultipleLineLogCatches()) {
+//			multiLineLogCatchMethod.add(findMethodForCatch(multiLineCatch));
+//			suspectMethods.put(findMethodForCatch(multiLineCatch), "MultiLineLogCatch");
+//		}
+//		
+//		for(CatchClause destructiveWrappingCatch: catchClauseVisitor.getDestructiveWrappingCatches()) {
+//			destructiveWrappingMethod.add(findMethodForCatch(destructiveWrappingCatch));
+//			suspectMethods.put(findMethodForCatch(destructiveWrappingCatch), "destructiveWrappingCatch");
+//		}
+//		
+//		for(CatchClause overCatch: catchClauseVisitor.getOverCatches()) {
+//			overCatchMethod.add(findMethodForCatch(overCatch));
+//			suspectMethods.put(findMethodForCatch(overCatch), "overCatch");
+//		}
+//		
+//		printInvocations();
+		printInvocations2(catchClauseVisitor);
 	}
 	
 	private MethodDeclaration findMethodForCatch(CatchClause catchClause) {
@@ -111,6 +119,15 @@ public class ExceptionFinder {
 			return findParentMethodDeclaration(node.getParent());
 		}
 	}
+	
+	private ASTNode findParentTryStatment(ASTNode node) {
+		if(node.getParent().getNodeType() == ASTNode.TRY_STATEMENT) {
+			return node.getParent();
+		} else {
+			return findParentMethodDeclaration(node.getParent());
+		}
+	}
+	
 
 	private void printExceptions(CatchClauseVisitor visitor) {
 		SampleHandler.printMessage("__________________MULTIPLE LINE CATCHES___________________");
@@ -156,4 +173,32 @@ public class ExceptionFinder {
 			SampleHandler.printMessage(declaration.toString());
 		}
 	}
+	
+	
+	private void printInvocations2(CatchClauseVisitor catchClauseVisitor) {
+		CountOfOverCatch = catchClauseVisitor.getOverCatches().size();
+		CountOfMultipleLine = catchClauseVisitor.getMultipleLineLogCatches().size();
+		CountOfWrap = catchClauseVisitor.getDestructiveWrappingCatches().size();
+		
+		for(CatchClause multiLineCatch: catchClauseVisitor.getMultipleLineLogCatches()) {
+			SampleHandler.printMessage(String.format("====Following method suffers from the %s pattern====", "destructive Wrapping"));
+			SampleHandler.printMessage(findParentTryStatment(multiLineCatch).toString());}
+		
+		for(CatchClause destructiveWrappingCatch: catchClauseVisitor.getDestructiveWrappingCatches()) {
+			SampleHandler.printMessage(String.format("====Following method suffers from the %s pattern====", "destructive Wrapping"));
+			SampleHandler.printMessage(findParentTryStatment(destructiveWrappingCatch).toString());	
+		}
+		
+		for(CatchClause overCatch: catchClauseVisitor.getOverCatches()) {
+			SampleHandler.printMessage(String.format("====Following method suffers from the %s pattern====", "over Catch"));
+			SampleHandler.printMessage(findParentTryStatment(overCatch).toString());
+			SampleHandler.printMessage(catchClauseVisitor.overCatchesDetails.get(overCatch));
+			
+			
+		}
+	}
 }
+
+
+
+

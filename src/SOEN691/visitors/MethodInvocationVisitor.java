@@ -34,7 +34,7 @@ public class MethodInvocationVisitor extends ASTVisitor{
 	HashSet<MethodInvocation> suspectInvocations = new HashSet<MethodInvocation>();
 	
 	
-
+	public int countOfMethodInvocation = 0;
 
 	public MethodInvocationVisitor(Set<MethodDeclaration> suspectDeclarations) {
 		this.suspectDeclarations = suspectDeclarations;
@@ -47,6 +47,7 @@ public class MethodInvocationVisitor extends ASTVisitor{
 	
 	@Override
 	public boolean visit(MethodInvocation node) {
+		countOfMethodInvocation++;
 		
 		List<String> exceptionList = new ArrayList<String>();
 		
@@ -113,8 +114,6 @@ public class MethodInvocationVisitor extends ASTVisitor{
 			SOEN691.patterns.ExceptionFinder.CallGraph.put(nodeCalled, adjCall);
 			
 		}
-		
-		
 
 		Set<String> setExceptionCall = new HashSet<String>();
 		Set<String> setExceptionCalled = new HashSet<String>();
