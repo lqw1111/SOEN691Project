@@ -54,9 +54,13 @@ public class MethodInvocationVisitor extends ASTVisitor{
 		IMethodBinding imbCalled = node.resolveMethodBinding().getMethodDeclaration();
 		IPackageBinding ipbCalled =	node.resolveMethodBinding().getMethodDeclaration().getDeclaringClass().getPackage();
 		
+		
+		
 		String classNameCalled = itbCalled.getName();
 		String methodNameCalled = imbCalled.toString();
 		String packageNameCalled = ipbCalled.getName();
+		
+		
 		Node nodeCalled = new Node(methodNameCalled, classNameCalled, packageNameCalled);
 
 		//itb, imb, ipb  called method.
@@ -102,6 +106,15 @@ public class MethodInvocationVisitor extends ASTVisitor{
 			adjCall.add(nodeCalled);
 			SOEN691.patterns.ExceptionFinder.CallGraph.put(nodeCall, adjCall);
 		}
+		
+
+		if(!SOEN691.patterns.ExceptionFinder.CallGraph.containsKey(nodeCalled)) {
+			Set<Node> adjCall = new HashSet<Node>();
+			SOEN691.patterns.ExceptionFinder.CallGraph.put(nodeCalled, adjCall);
+			
+		}
+		
+		
 
 		Set<String> setExceptionCall = new HashSet<String>();
 		Set<String> setExceptionCalled = new HashSet<String>();

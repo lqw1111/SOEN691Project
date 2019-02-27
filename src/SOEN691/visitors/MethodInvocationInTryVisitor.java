@@ -68,8 +68,16 @@ public class MethodInvocationInTryVisitor extends ASTVisitor{
 			return super.visit(node);
 		}
 		Set<Node> calledNodeSet = new HashSet<Node>();
-		calledNodeSet.add(nodeCalled);
+		
 		calledNodeSet = SOEN691.patterns.ExceptionFinder.CallGraph.get(nodeCalled);
+		if(calledNodeSet == null) {
+			calledNodeSet = new HashSet<Node>();
+			calledNodeSet.add(nodeCalled);
+		}
+		else {
+			calledNodeSet.add(nodeCalled);
+		}
+
 		
 		
 		Set<String> exceptionSet = new HashSet<String>();
