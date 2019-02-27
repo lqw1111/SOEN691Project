@@ -93,13 +93,13 @@ public class CatchClauseVisitor extends ASTVisitor{
 	HashSet<CatchClause> overCatches = new HashSet<CatchClause>();
 	public HashMap<CatchClause,String> overCatchesDetails = new HashMap<CatchClause, String>();
 	public int countOfCatchBlock = 0;
-	
+
 	public CatchClauseVisitor() {}
-	
+
 	public CatchClauseVisitor(HashSet<CatchClause> previouslyFoundCatches) {
 		indebtCatches.addAll(previouslyFoundCatches);
 	}
-	
+
 
 
 	public List<String> FindRuntimeExceptions(MethodInvocation mInvocation) throws JavaModelException {
@@ -130,7 +130,7 @@ public class CatchClauseVisitor extends ASTVisitor{
 		return exceptionList;
 
 	}
-	
+
 	public List<String> FindNonRuntimeExceptions(MethodInvocation mInvocation) throws JavaModelException {
 		IMethodBinding imb = mInvocation.resolveMethodBinding().getMethodDeclaration();
 		List<String> exceptionList = new ArrayList<>();
@@ -143,14 +143,14 @@ public class CatchClauseVisitor extends ASTVisitor{
 				int flag = str.lastIndexOf(".")+1;
 				ss = str.substring(flag, str.length());
 				exceptionList.add(ss);
-				
+
 			}
 			else {
 				exceptionList.add(str);
 			}
-		
+
 		}
-		
+
 		return exceptionList;
 	}
 	public List<String> FindNonRuntimeExceptions(IMethodBinding imb) throws JavaModelException {
@@ -164,39 +164,39 @@ public class CatchClauseVisitor extends ASTVisitor{
 				int flag = str.lastIndexOf(".")+1;
 				ss = str.substring(flag, str.length());
 				exceptionList.add(ss);
-				
+
 			}
 			else {
 				exceptionList.add(str);
 			}
-		
+
 		}
-		
+
 		return exceptionList;
 	}
-	
-	
+
+
 	@Override
 	public boolean visit(CatchClause node) {
 		countOfCatchBlock++;
 		//catch exceptions set in try block (init)
 //		HashSet<String> tryExceptionStringSet = new HashSet<String>();
-		
+
 		// catch exception type
-		ITypeBinding exceptionTypeInCatch = 
+		ITypeBinding exceptionTypeInCatch =
 				node.getException().getType().resolveBinding();
 		String wholeException = exceptionTypeInCatch.getQualifiedName();
 		String exceptionNameInCatch = wholeException.substring(wholeException.lastIndexOf(".")+1,wholeException.length());
-		
+
 		// get try block
 		TryStatement tryStatement = (TryStatement)node.getParent();
 		Block tryBlock = tryStatement.getBody();
 		MethodInvocationInTryVisitor mVisitor = new MethodInvocationInTryVisitor();
-		
+
 		tryBlock.accept(mVisitor);
 		//result of exceptions in tryBlock is in mVisitor.ResultExceptionSet
-		//All exception 
-		
+		//All exception
+
 
 
 		//to compare exceptions between try and block
@@ -211,8 +211,8 @@ public class CatchClauseVisitor extends ASTVisitor{
 			}
 		}
 		exceptionsInTry = exceptionsInTry.replaceFirst(", ", "");
-		
-		
+
+
 		if(overcatch) {
 			overCatches.add(node);
 			StringBuilder sb = new StringBuilder();
@@ -221,12 +221,12 @@ public class CatchClauseVisitor extends ASTVisitor{
 			sb.append("Exception detected in the catch clause: ");
 			sb.append(exceptionNameInCatch+"\n");
 			overCatchesDetails.put(node, sb.toString());
-			
+
 		}
 
-		//MuitipleLine logs
+		//MuitipleLine logs and destructive wrapping catches
 		int countOfLog = 0;
-		
+
 		Block block = node.getBody();
 
 		List<ASTNode> bodies = block.statements();
@@ -235,37 +235,36 @@ public class CatchClauseVisitor extends ASTVisitor{
 				ExpressionStatement ex = (ExpressionStatement) nn;
 				if(ex.getExpression() instanceof MethodInvocation) {
 					MethodInvocation mInvocation  = (MethodInvocation)ex.getExpression();
-					
+
 					ITypeBinding type = mInvocation.resolveMethodBinding().getDeclaringClass();
-					
-					
-					
+
+
+
 					if (type.getQualifiedName().contentEquals("java.util.logging.Logger")) {
 						String name = mInvocation.getName().toString();
 						if(CheckLogLevel(name))
 							countOfLog++;
 					}
-					
+
 				}
-				
+
 			}
 			else if (nn instanceof ThrowStatement) {
 				destructiveWrappingCatches.add(node);
-				
 			}
 		}
-		
+
 		if (countOfLog >1) {
 			multipleLineCatches.add(node);
 		}
 		return super.visit(node);
 	}
-	
-	
+
+
 	public HashSet<CatchClause> getMultipleLineLogCatches() {
 		return multipleLineCatches;
 	}
-	
+
 	public  boolean CheckLogLevel(String name) {
 		if(name.equals("info")) {
 			return true;
@@ -301,16 +300,16 @@ public class CatchClauseVisitor extends ASTVisitor{
 			return true;
 		}
 		return false;
-		
+
 	}
-	
-	
+
+
 	private static String getJavadocFast(IMember member) throws JavaModelException {
 		IBuffer buffer = member.getOpenable().getBuffer();
 
 		ISourceRange javadocRange = member.getJavadocRange();
 		String javadocText = buffer.getText(javadocRange.getOffset(), javadocRange.getLength());
-		
+
 			javadocText = javadocText.replaceAll("^/[*][*][ \t]*\n?", "");  // Filter starting /**
 			javadocText = javadocText.replaceAll("\n?[ \t]*[*]/$", "");  // Filter ending */
 			javadocText = javadocText.replaceAll("^\\s*[*]", "\n");  // Trim leading whitespace.
@@ -318,22 +317,12 @@ public class CatchClauseVisitor extends ASTVisitor{
 			javadocText = javadocText.replaceAll("<[^>]*>", "");  // Remove html tags.
 			javadocText = javadocText.replaceAll("[{]@code([^}]*)[}]", "$1");  // Replace {@code foo} blocks with foo.
 			javadocText = javadocText.replaceAll("&nbsp;", " ").replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&quot;", "\"");  // Replace html formatting.
-		
-		
+
+
 //		javadocText = Flags.toString(member.getFlags()) + " " + JavaElement.getElementLabel(member, JavaElementLabels.M_PRE_RETURNTYPE | JavaElementLabels.M_PARAMETER_NAMES | JavaElementLabels.M_PARAMETER_TYPES | JavaElementLabels.F_PRE_TYPE_SIGNATURE) + "\n" + javadocText;
 		return javadocText;
 	}
-	
 
-    /**
-     * Creates a new <code>File</code> instance by converting the given
-     * pathname string into an abstract pathname.  If the given string is
-     * the empty string, then the result is the empty abstract pathname.
-     *
-     * @param   pathname  A pathname string
-     * @throws  TestException
-     *          If the <code>pathname</code> argument is <code>null</code>
-     */
 	public List<String> FindExceptionsInJavadoc(String javadocText){
 		List<String> exceptionList = new ArrayList<>();
 		String[] array = javadocText.split("\n");
@@ -346,14 +335,14 @@ public class CatchClauseVisitor extends ASTVisitor{
 						break;
 					}
 				}
-			
-				
+
+
 			}
-		}	
+		}
 		return exceptionList;
 	}
 	public MethodDeclaration FindMethodDeclaration(MethodInvocation node) {
-		
+
 		IMethodBinding binding = (IMethodBinding) node.getName().resolveBinding();
 		ICompilationUnit unit = (ICompilationUnit) binding.getJavaElement().getAncestor( IJavaElement.COMPILATION_UNIT );
 		if ( unit == null ) {
@@ -366,12 +355,12 @@ public class CatchClauseVisitor extends ASTVisitor{
 		parser.setResolveBindings( true );
 		CompilationUnit cu = (CompilationUnit) parser.createAST( null );
 		MethodDeclaration decl = (MethodDeclaration)cu.findDeclaringNode( binding.getKey() );
-		
+
 		return decl;
-		
-		
+
+
 	}
-	
+
 	public MethodDeclaration FindMethodDeclaration(IMethodBinding binding ) {
 		if(binding == null) {
 			return null;
@@ -381,7 +370,7 @@ public class CatchClauseVisitor extends ASTVisitor{
 			return null;
 		}
 		Object obj = ije.getAncestor( IJavaElement.COMPILATION_UNIT );
-		
+
 		ICompilationUnit unit;
 		if(obj != null) {
 			unit = (ICompilationUnit)obj;
@@ -396,10 +385,10 @@ public class CatchClauseVisitor extends ASTVisitor{
 		parser.setResolveBindings( true );
 		CompilationUnit cu = (CompilationUnit) parser.createAST( null );
 		MethodDeclaration decl = (MethodDeclaration)cu.findDeclaringNode( binding.getKey() );
-		
+
 		return decl;
-		
-		
+
+
 	}
 
 	public HashSet<CatchClause> getDestructiveWrappingCatches() {
