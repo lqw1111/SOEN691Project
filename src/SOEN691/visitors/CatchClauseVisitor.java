@@ -2,6 +2,7 @@ package SOEN691.visitors;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -90,6 +91,8 @@ public class CatchClauseVisitor extends ASTVisitor{
 	HashSet<CatchClause> multipleLineCatches = new HashSet<CatchClause>();
 	HashSet<CatchClause> destructiveWrappingCatches = new HashSet<CatchClause>();
 	HashSet<CatchClause> overCatches = new HashSet<CatchClause>();
+	public HashMap<CatchClause,String> overCatchesDetails = new HashMap<CatchClause, String>();
+	public int countOfCatchBlock = 0;
 	
 	public CatchClauseVisitor() {}
 	
@@ -97,24 +100,7 @@ public class CatchClauseVisitor extends ASTVisitor{
 		indebtCatches.addAll(previouslyFoundCatches);
 	}
 	
-//	public List<String> FindExceptions(Block block) throws JavaModelException {
-//		
-//		List<String> exceptionList = new ArrayList<String>();
-//		if(block == null) {
-//			return exceptionList;
-//		}
-//		
-//		
-//		
-//		List<ASTNode> bodies = block.statements();
-//		
-//		for(ASTNode node: bodies) {
-//			exceptionList.addAll(AnalyzeStatement(node));
-//
-//		}
-//		return exceptionList;
-//		
-//	}
+
 
 	public List<String> FindRuntimeExceptions(MethodInvocation mInvocation) throws JavaModelException {
 		IMethodBinding imb = mInvocation.resolveMethodBinding().getMethodDeclaration();
@@ -192,7 +178,7 @@ public class CatchClauseVisitor extends ASTVisitor{
 	
 	@Override
 	public boolean visit(CatchClause node) {
-		
+		countOfCatchBlock++;
 		//catch exceptions set in try block (init)
 //		HashSet<String> tryExceptionStringSet = new HashSet<String>();
 		
@@ -215,17 +201,27 @@ public class CatchClauseVisitor extends ASTVisitor{
 
 		//to compare exceptions between try and block
 		boolean overcatch = true;
+		String exceptionsInTry = "";
 
 		for(String etype:mVisitor.ResultExceptionSet) {
+			exceptionsInTry = exceptionsInTry +", "+etype;
 			if(etype.equals(exceptionNameInCatch)) {
 				overcatch = false;
 				break;
 			}
 		}
+		exceptionsInTry = exceptionsInTry.replaceFirst(", ", "");
 		
 		
 		if(overcatch) {
 			overCatches.add(node);
+			StringBuilder sb = new StringBuilder();
+			sb.append("Exceptions detected in the try block: ");
+			sb.append(exceptionsInTry +"\n");
+			sb.append("Exception detected in the catch clause: ");
+			sb.append(exceptionNameInCatch+"\n");
+			overCatchesDetails.put(node, sb.toString());
+			
 		}
 
 		//MuitipleLine logs
