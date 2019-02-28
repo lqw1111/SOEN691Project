@@ -93,28 +93,29 @@ public class ExceptionFinder {
 		antiPatterns.put("CountOfWrap", NumOfWrap);
 		antiPatterns.put("CountOfOverCatch", NumOfOverCatch);
 		antiPatternsContainer.put(parsedCompilationUnit.getJavaElement().getPath().toString(), antiPatterns);
-		System.out.println("antiPatternsContainer: " + antiPatternsContainer.toString());
 	}
 
 	private static final String NEW_LINE_SEPARATOR = "\n";
 
 	private void downLoadTXTFile(IProject project) {
-		String format = "%30s %15s %15s %15s";
+		String format = "%40s %20s %15s %15s";
+
 		FileWriter fileWriter = null;
 		try {
-			fileWriter = new FileWriter("/Users/jingyang/Desktop/" + project.getName() + ".txt");
-
-			fileWriter.append(String
-					.format(format, "File path", "CountOfWrap", "CountOfOverCatch", "CountOfMultipleLine").toString());
+			fileWriter = new FileWriter(project.getName() + ".txt");
+			fileWriter
+					.append(String.format(format, "File path\t", "#Wrap\t", "#OverCatch\t", "#MultiLine\t").toString());
 			fileWriter.append(NEW_LINE_SEPARATOR);
 
 			for (String fileName : antiPatternsContainer.keySet()) {
 				String[] subFileNameString = fileName.toString().split("/");
 				HashMap<String, Integer> antiPatterns = antiPatternsContainer.get(fileName);
 				fileWriter.append(String.format(format,
-						subFileNameString[1] + "/.../" + subFileNameString[subFileNameString.length - 1],
-						antiPatterns.get("CountOfWrap").toString(), antiPatterns.get("CountOfOverCatch").toString(),
-						antiPatterns.get("CountOfMultipleLine").toString()));
+						subFileNameString[1] + "/.../" + subFileNameString[subFileNameString.length - 1] + "\t",
+						antiPatterns.get("CountOfWrap").toString() + "\t",
+						antiPatterns.get("CountOfOverCatch").toString() + "\t",
+						antiPatterns.get("CountOfMultipleLine").toString() + "\t"));
+
 				fileWriter.append(NEW_LINE_SEPARATOR);
 			}
 
