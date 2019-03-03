@@ -64,8 +64,7 @@ public class MethodInvocationVisitor extends ASTVisitor{
 		
 		Node nodeCalled = new Node(methodNameCalled, classNameCalled, packageNameCalled);
 
-		//itb, imb, ipb  called method.
-		
+		//itb, imb, ipb  called method
 		// find call method ->
 		ASTNode astNode = node;
 		MethodDeclaration callMD = null ;
