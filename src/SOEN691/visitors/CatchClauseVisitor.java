@@ -197,8 +197,6 @@ public class CatchClauseVisitor extends ASTVisitor{
 		//result of exceptions in tryBlock is in mVisitor.ResultExceptionSet
 		//All exception
 
-
-
 		//to compare exceptions between try and block
 		boolean overcatch = true;
 		String exceptionsInTry = "";
