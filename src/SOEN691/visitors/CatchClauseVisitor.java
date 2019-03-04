@@ -62,6 +62,7 @@ import org.eclipse.jdt.core.dom.ParenthesizedExpression;
 import org.eclipse.jdt.core.dom.PostfixExpression;
 import org.eclipse.jdt.core.dom.PrefixExpression;
 import org.eclipse.jdt.core.dom.ReturnStatement;
+import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
@@ -77,6 +78,7 @@ import org.eclipse.jdt.core.dom.TryStatement;
 import org.eclipse.jdt.core.dom.TypeDeclarationStatement;
 import org.eclipse.jdt.core.dom.TypeLiteral;
 import org.eclipse.jdt.core.dom.TypeMethodReference;
+import org.eclipse.jdt.core.dom.UnionType;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
@@ -185,8 +187,32 @@ public class CatchClauseVisitor extends ASTVisitor{
 		// catch exception type
 		ITypeBinding exceptionTypeInCatch =
 				node.getException().getType().resolveBinding();
-		String wholeException = exceptionTypeInCatch.getQualifiedName();
-		String exceptionNameInCatch = wholeException.substring(wholeException.lastIndexOf(".")+1,wholeException.length());
+
+
+		SingleVariableDeclaration svd = node.getException();
+		Set<String> wholeExceptionsInCatch = new HashSet<String>();
+		try {
+			UnionType unionType = (UnionType)svd.getType();
+			List<ASTNode> listUnionType = unionType.types();
+			for(ASTNode ut :listUnionType) {
+
+				wholeExceptionsInCatch.add(ut.toString());
+			}
+		}
+		catch(Exception e) {
+			String ss = exceptionTypeInCatch.getQualifiedName();
+			String exceptionNameInCatch = ss.substring(ss.lastIndexOf(".")+1,ss.length());
+			wholeExceptionsInCatch.add(exceptionNameInCatch);
+		}
+
+
+		//wholeExceptionsInCatch stores all exceptions in catch
+		//exceptionNameInCatch store only one exception in catch in previous version.
+
+
+//		String wholeException = exceptionTypeInCatch.getQualifiedName();
+
+//		String exceptionNameInCatch = wholeException.substring(wholeException.lastIndexOf(".")+1,wholeException.length());
 
 		// get try block
 		TryStatement tryStatement = (TryStatement)node.getParent();
@@ -201,13 +227,29 @@ public class CatchClauseVisitor extends ASTVisitor{
 		boolean overcatch = true;
 		String exceptionsInTry = "";
 
+//		for(String etype:mVisitor.ResultExceptionSet) {
+//			exceptionsInTry = exceptionsInTry +", "+etype;
+//			if(etype.equals(exceptionNameInCatch)) {
+//				overcatch = false;
+//				break;
+//			}
+//		}
+		//previous version
+
 		for(String etype:mVisitor.ResultExceptionSet) {
 			exceptionsInTry = exceptionsInTry +", "+etype;
-			if(etype.equals(exceptionNameInCatch)) {
-				overcatch = false;
-				break;
+
+			for(String etypeInCatch: wholeExceptionsInCatch) {
+				if(etype.equals(etypeInCatch)) {
+					overcatch = false;
+					break;
+				}
 			}
+
 		}
+
+
+
 		exceptionsInTry = exceptionsInTry.replaceFirst(", ", "");
 
 
@@ -217,7 +259,11 @@ public class CatchClauseVisitor extends ASTVisitor{
 			sb.append("Exceptions detected in the try block: ");
 			sb.append(exceptionsInTry +"\n");
 			sb.append("Exception detected in the catch clause: ");
-			sb.append(exceptionNameInCatch+"\n");
+//			sb.append(exceptionNameInCatch+"\n"); //previous
+			for(String etypeInCatch: wholeExceptionsInCatch) {
+				sb.append(etypeInCatch+ " ");
+			}
+			sb.append("\n");
 			overCatchesDetails.put(node, sb.toString());
 
 		}
