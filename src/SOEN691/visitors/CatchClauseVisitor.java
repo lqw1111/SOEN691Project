@@ -238,11 +238,11 @@ public class CatchClauseVisitor extends ASTVisitor{
 
 
 
-					if (type.getQualifiedName().contentEquals("java.util.logging.Logger")) {
+//					if (type.getQualifiedName().contentEquals("java.util.logging.Logger")) {
 						String name = mInvocation.getName().toString();
 						if(CheckLogLevel(name))
 							countOfLog++;
-					}
+//					}
 
 				}
 
