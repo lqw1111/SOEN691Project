@@ -98,11 +98,12 @@ public class ExceptionFinder {
 	private static final String NEW_LINE_SEPARATOR = "\n";
 
 	private void downLoadTXTFile(IProject project) {
-		String format = "%40s %20s %15s %15s";
+		String format = "%80s %20s %15s %15s";
 
 		FileWriter fileWriter = null;
 		try {
 			fileWriter = new FileWriter(project.getName() + ".txt");
+
 			fileWriter
 					.append(String.format(format, "File path\t", "#Wrap\t", "#OverCatch\t", "#MultiLine\t").toString());
 			fileWriter.append(NEW_LINE_SEPARATOR);
