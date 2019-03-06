@@ -218,6 +218,8 @@ public class CatchClauseVisitor extends ASTVisitor{
 		TryStatement tryStatement = (TryStatement)node.getParent();
 		Block tryBlock = tryStatement.getBody();
 		MethodInvocationInTryVisitor mVisitor = new MethodInvocationInTryVisitor();
+//		ConstructorInvocationInTryVisitor cVisitor = new ConstructorInvocationInTryVisitor();
+//		tryBlock.accept(cVisitor);
 
 		tryBlock.accept(mVisitor);
 		//result of exceptions in tryBlock is in mVisitor.ResultExceptionSet
