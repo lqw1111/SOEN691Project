@@ -19,13 +19,16 @@ import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.Block;
+import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.ConstructorInvocation;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.IPackageBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.PackageDeclaration;
+import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.TryStatement;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import SOEN691.patterns.ExceptionFinder;
@@ -45,15 +48,28 @@ public class MethodInvocationVisitor extends ASTVisitor{
 		// TODO Auto-generated constructor stub
 	}
 	
+	
 	@Override
-	public boolean visit(MethodInvocation node) {
+	public boolean visit(ClassInstanceCreation node) {
 		countOfMethodInvocation++;
-		
+		if( node == null) {
+			return super.visit(node);
+		}
 		List<String> exceptionList = new ArrayList<String>();
+		ITypeBinding itbCalled ;
+		IMethodBinding imbCalled;
+		IPackageBinding ipbCalled;
 		
-		ITypeBinding itbCalled = node.resolveMethodBinding().getDeclaringClass();
-		IMethodBinding imbCalled = node.resolveMethodBinding().getMethodDeclaration();
-		IPackageBinding ipbCalled =	node.resolveMethodBinding().getMethodDeclaration().getDeclaringClass().getPackage();
+		try {
+	
+			itbCalled = node.resolveConstructorBinding().getDeclaringClass();
+			 imbCalled = node.resolveConstructorBinding().getMethodDeclaration();
+			 ipbCalled =	node.resolveConstructorBinding().getMethodDeclaration().getDeclaringClass().getPackage();
+			
+		}
+		catch (Exception e) {
+			return super.visit(node);
+		}
 		
 		
 		
@@ -80,7 +96,139 @@ public class MethodInvocationVisitor extends ASTVisitor{
 			else if(astNode instanceof TypeDeclaration) {
 				return super.visit(node);//to check
 			}		
-			astNode = astNode.getParent();
+			try {
+				astNode = astNode.getParent();
+			}
+			catch (Exception ex) {
+				return super.visit(node);//to check
+			}
+			
+
+		}
+		
+		IMethodBinding imbCall = callMD.resolveBinding();
+		ITypeBinding itbCall = callMD.resolveBinding().getDeclaringClass();
+		IPackageBinding ipbCall = callMD.resolveBinding().getDeclaringClass().getPackage();
+		
+		String classNameCall = itbCall.getName();
+		String methodNameCall = imbCall.toString();
+		String packageNameCall = ipbCall.getName();
+		Node nodeCall = new Node(methodNameCall, classNameCall, packageNameCall);
+
+		
+		if(SOEN691.patterns.ExceptionFinder.CallGraph.containsKey(nodeCall)) {
+			Set<Node> adjCall = new HashSet<Node>();
+			adjCall = SOEN691.patterns.ExceptionFinder.CallGraph.get(nodeCall);
+			adjCall.add(nodeCalled);
+			SOEN691.patterns.ExceptionFinder.CallGraph.put(nodeCall, adjCall);
+			
+		}
+		else {
+			Set<Node> adjCall = new HashSet<Node>();
+			adjCall.add(nodeCalled);
+			SOEN691.patterns.ExceptionFinder.CallGraph.put(nodeCall, adjCall);
+		}
+		
+
+		if(!SOEN691.patterns.ExceptionFinder.CallGraph.containsKey(nodeCalled)) {
+			Set<Node> adjCall = new HashSet<Node>();
+			SOEN691.patterns.ExceptionFinder.CallGraph.put(nodeCalled, adjCall);
+			
+		}
+
+		Set<String> setExceptionCall = new HashSet<String>();
+		Set<String> setExceptionCalled = new HashSet<String>();
+		try {
+			setExceptionCall.addAll(FindNonRuntimeExceptions(imbCall));
+			setExceptionCall.addAll(FindRuntimeExceptions(imbCall));
+			
+			setExceptionCalled.addAll(FindNonRuntimeExceptions(imbCalled));
+			setExceptionCalled.addAll(FindRuntimeExceptions(imbCalled));
+		}
+		catch(JavaModelException ex) {
+			
+		}
+
+		if(SOEN691.patterns.ExceptionFinder.ExceptionMap.containsKey(nodeCalled)) {
+			Set<String> tempSet = new HashSet<String>();
+			tempSet = SOEN691.patterns.ExceptionFinder.ExceptionMap.get(nodeCalled);
+			tempSet.addAll(setExceptionCalled);
+			SOEN691.patterns.ExceptionFinder.ExceptionMap.put(nodeCalled, tempSet);
+		}
+		else {
+
+			SOEN691.patterns.ExceptionFinder.ExceptionMap.put(nodeCalled, setExceptionCalled);
+			
+		}
+
+		if(SOEN691.patterns.ExceptionFinder.ExceptionMap.containsKey(nodeCall)) {
+			Set<String> tempSet = new HashSet<String>();
+			tempSet = SOEN691.patterns.ExceptionFinder.ExceptionMap.get(nodeCall);
+			tempSet.addAll(setExceptionCall);
+			SOEN691.patterns.ExceptionFinder.ExceptionMap.put(nodeCall, tempSet);
+		}
+		else {
+
+			SOEN691.patterns.ExceptionFinder.ExceptionMap.put(nodeCall, setExceptionCall);
+			
+		}
+		
+
+		return super.visit(node);
+	}
+	@Override
+	public boolean visit(MethodInvocation node) {
+		countOfMethodInvocation++;
+		if( node == null) {
+			return super.visit(node);
+		}
+		List<String> exceptionList = new ArrayList<String>();
+		ITypeBinding itbCalled ;
+		IMethodBinding imbCalled;
+		IPackageBinding ipbCalled;
+		
+		try {
+			itbCalled = node.resolveMethodBinding().getDeclaringClass();
+			 imbCalled = node.resolveMethodBinding().getMethodDeclaration();
+			 ipbCalled =	node.resolveMethodBinding().getMethodDeclaration().getDeclaringClass().getPackage();
+			
+		}
+		catch (Exception e) {
+			return super.visit(node);
+		}
+		
+		
+		
+		String classNameCalled = itbCalled.getName();
+		String methodNameCalled = imbCalled.toString();
+		String packageNameCalled = ipbCalled.getName();
+		
+		
+		Node nodeCalled = new Node(methodNameCalled, classNameCalled, packageNameCalled);
+
+		//itb, imb, ipb  called method
+		// find call method ->
+		ASTNode astNode = node;
+		MethodDeclaration callMD = null ;
+		Block tryBlock = null;
+		while(true) {
+			
+			if(astNode instanceof MethodDeclaration) {
+				callMD = (MethodDeclaration)astNode;
+				break;
+				
+				
+			}
+			else if(astNode instanceof TypeDeclaration) {
+				return super.visit(node);//to check
+			}		
+			try {
+				astNode = astNode.getParent();
+			}
+			catch (Exception ex) {
+				return super.visit(node);//to check
+			}
+			
 
 		}
 		
@@ -155,6 +303,137 @@ public class MethodInvocationVisitor extends ASTVisitor{
 		return super.visit(node);
 	}
 	
+	
+	
+	@Override
+	public boolean visit(SuperMethodInvocation node) {
+		countOfMethodInvocation++;
+		if( node == null) {
+			return super.visit(node);
+		}
+		List<String> exceptionList = new ArrayList<String>();
+		ITypeBinding itbCalled ;
+		IMethodBinding imbCalled;
+		IPackageBinding ipbCalled;
+		
+		try {
+			
+			itbCalled = node.resolveMethodBinding().getDeclaringClass();
+			 imbCalled = node.resolveMethodBinding().getMethodDeclaration();
+			 ipbCalled =	node.resolveMethodBinding().getMethodDeclaration().getDeclaringClass().getPackage();
+			
+		}
+		catch (Exception e) {
+			return super.visit(node);
+		}
+		
+		
+		
+		String classNameCalled = itbCalled.getName();
+		String methodNameCalled = imbCalled.toString();
+		String packageNameCalled = ipbCalled.getName();
+		
+		
+		Node nodeCalled = new Node(methodNameCalled, classNameCalled, packageNameCalled);
+
+		//itb, imb, ipb  called method
+		// find call method ->
+		ASTNode astNode = node;
+		MethodDeclaration callMD = null ;
+		Block tryBlock = null;
+		while(true) {
+			
+			if(astNode instanceof MethodDeclaration) {
+				callMD = (MethodDeclaration)astNode;
+				break;
+				
+				
+			}
+			else if(astNode instanceof TypeDeclaration) {
+				return super.visit(node);//to check
+			}		
+			try {
+				astNode = astNode.getParent();
+			}
+			catch (Exception ex) {
+				return super.visit(node);//to check
+			}
+			
+
+		}
+		
+		IMethodBinding imbCall = callMD.resolveBinding();
+		ITypeBinding itbCall = callMD.resolveBinding().getDeclaringClass();
+		IPackageBinding ipbCall = callMD.resolveBinding().getDeclaringClass().getPackage();
+		
+		String classNameCall = itbCall.getName();
+		String methodNameCall = imbCall.toString();
+		String packageNameCall = ipbCall.getName();
+		Node nodeCall = new Node(methodNameCall, classNameCall, packageNameCall);
+
+		
+		if(SOEN691.patterns.ExceptionFinder.CallGraph.containsKey(nodeCall)) {
+			Set<Node> adjCall = new HashSet<Node>();
+			adjCall = SOEN691.patterns.ExceptionFinder.CallGraph.get(nodeCall);
+			adjCall.add(nodeCalled);
+			SOEN691.patterns.ExceptionFinder.CallGraph.put(nodeCall, adjCall);
+			
+		}
+		else {
+			Set<Node> adjCall = new HashSet<Node>();
+			adjCall.add(nodeCalled);
+			SOEN691.patterns.ExceptionFinder.CallGraph.put(nodeCall, adjCall);
+		}
+		
+
+		if(!SOEN691.patterns.ExceptionFinder.CallGraph.containsKey(nodeCalled)) {
+			Set<Node> adjCall = new HashSet<Node>();
+			SOEN691.patterns.ExceptionFinder.CallGraph.put(nodeCalled, adjCall);
+			
+		}
+
+		Set<String> setExceptionCall = new HashSet<String>();
+		Set<String> setExceptionCalled = new HashSet<String>();
+		try {
+			setExceptionCall.addAll(FindNonRuntimeExceptions(imbCall));
+			setExceptionCall.addAll(FindRuntimeExceptions(imbCall));
+			
+			setExceptionCalled.addAll(FindNonRuntimeExceptions(imbCalled));
+			setExceptionCalled.addAll(FindRuntimeExceptions(imbCalled));
+		}
+		catch(JavaModelException ex) {
+			
+		}
+
+		if(SOEN691.patterns.ExceptionFinder.ExceptionMap.containsKey(nodeCalled)) {
+			Set<String> tempSet = new HashSet<String>();
+			tempSet = SOEN691.patterns.ExceptionFinder.ExceptionMap.get(nodeCalled);
+			tempSet.addAll(setExceptionCalled);
+			SOEN691.patterns.ExceptionFinder.ExceptionMap.put(nodeCalled, tempSet);
+		}
+		else {
+
+			SOEN691.patterns.ExceptionFinder.ExceptionMap.put(nodeCalled, setExceptionCalled);
+			
+		}
+
+		if(SOEN691.patterns.ExceptionFinder.ExceptionMap.containsKey(nodeCall)) {
+			Set<String> tempSet = new HashSet<String>();
+			tempSet = SOEN691.patterns.ExceptionFinder.ExceptionMap.get(nodeCall);
+			tempSet.addAll(setExceptionCall);
+			SOEN691.patterns.ExceptionFinder.ExceptionMap.put(nodeCall, tempSet);
+		}
+		else {
+
+			SOEN691.patterns.ExceptionFinder.ExceptionMap.put(nodeCall, setExceptionCall);
+			
+		}
+		
+
+		return super.visit(node);
+	}
+
+
 	public MethodDeclaration FindMethodDeclaration(IMethodBinding binding ) {
 		if(binding == null) {
 			return null;
@@ -250,7 +529,7 @@ public class MethodInvocationVisitor extends ASTVisitor{
 		List<String> exceptionList = new ArrayList<>();
 		String[] array = javadocText.split("\n");
 		for(int i =0;i<array.length;i++) {
-			if(array[i].contains("@throws")) {
+			if(array[i].contains("@throws")||array[i].contains("@exception")) {
 				String[] temp = array[i].split(" ");
 				for(String ss: temp) {
 					if(ss.contains("Exception")) {

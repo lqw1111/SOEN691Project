@@ -140,7 +140,9 @@ public class ExceptionFinder {
 			CompilationUnit parsedCompilationUnit = parse(unit);
 
 			MethodInvocationVisitor methodInvocationVisitor = new MethodInvocationVisitor();
+//			ConstructorInvocationVisitor conInvocationVisitor = new ConstructorInvocationVisitor();
 			parsedCompilationUnit.accept(methodInvocationVisitor);
+//			parsedCompilationUnit.accept(conInvocationVisitor);
 			CountOfMethodInvocation = CountOfMethodInvocation + methodInvocationVisitor.countOfMethodInvocation;
 
 		}
