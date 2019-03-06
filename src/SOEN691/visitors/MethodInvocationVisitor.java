@@ -48,12 +48,23 @@ public class MethodInvocationVisitor extends ASTVisitor{
 	@Override
 	public boolean visit(MethodInvocation node) {
 		countOfMethodInvocation++;
-		
+		if( node == null) {
+			return super.visit(node);
+		}
 		List<String> exceptionList = new ArrayList<String>();
+		ITypeBinding itbCalled ;
+		IMethodBinding imbCalled;
+		IPackageBinding ipbCalled;
 		
-		ITypeBinding itbCalled = node.resolveMethodBinding().getDeclaringClass();
-		IMethodBinding imbCalled = node.resolveMethodBinding().getMethodDeclaration();
-		IPackageBinding ipbCalled =	node.resolveMethodBinding().getMethodDeclaration().getDeclaringClass().getPackage();
+		try {
+			itbCalled = node.resolveMethodBinding().getDeclaringClass();
+			 imbCalled = node.resolveMethodBinding().getMethodDeclaration();
+			 ipbCalled =	node.resolveMethodBinding().getMethodDeclaration().getDeclaringClass().getPackage();
+			
+		}
+		catch (Exception e) {
+			return super.visit(node);
+		}
 		
 		
 		
@@ -80,7 +91,13 @@ public class MethodInvocationVisitor extends ASTVisitor{
 			else if(astNode instanceof TypeDeclaration) {
 				return super.visit(node);//to check
 			}		
-			astNode = astNode.getParent();
+			try {
+				astNode = astNode.getParent();
+			}
+			catch (Exception ex) {
+				return super.visit(node);//to check
+			}
+			
 
 		}
 		
@@ -250,7 +267,7 @@ public class MethodInvocationVisitor extends ASTVisitor{
 		List<String> exceptionList = new ArrayList<>();
 		String[] array = javadocText.split("\n");
 		for(int i =0;i<array.length;i++) {
-			if(array[i].contains("@throws")) {
+			if(array[i].contains("@throws")||array[i].contains("@exception")) {
 				String[] temp = array[i].split(" ");
 				for(String ss: temp) {
 					if(ss.contains("Exception")) {

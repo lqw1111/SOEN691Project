@@ -279,8 +279,14 @@ public class CatchClauseVisitor extends ASTVisitor{
 				ExpressionStatement ex = (ExpressionStatement) nn;
 				if(ex.getExpression() instanceof MethodInvocation) {
 					MethodInvocation mInvocation  = (MethodInvocation)ex.getExpression();
+					ITypeBinding type;
+					try {
+						 type = mInvocation.resolveMethodBinding().getDeclaringClass();
+					}
+					catch (Exception e) {
+						continue;
+					}
 
-					ITypeBinding type = mInvocation.resolveMethodBinding().getDeclaringClass();
 
 
 

@@ -55,10 +55,18 @@ public class MethodInvocationInTryVisitor extends ASTVisitor{
 	public boolean visit(MethodInvocation node) {
 		
 		List<String> exceptionList = new ArrayList<String>();
-		
-		ITypeBinding itbCalled = node.resolveMethodBinding().getDeclaringClass();
-		IMethodBinding imbCalled = node.resolveMethodBinding().getMethodDeclaration();
-		IPackageBinding ipbCalled =	node.resolveMethodBinding().getMethodDeclaration().getDeclaringClass().getPackage();
+		ITypeBinding itbCalled ;
+		IMethodBinding imbCalled ;
+		IPackageBinding ipbCalled ;
+		try {
+			itbCalled = node.resolveMethodBinding().getDeclaringClass();
+			 imbCalled = node.resolveMethodBinding().getMethodDeclaration();
+			 ipbCalled =	node.resolveMethodBinding().getMethodDeclaration().getDeclaringClass().getPackage();
+			
+		}
+		catch(Exception e) {
+			return super.visit(node);
+		}
 		
 		String classNameCalled = itbCalled.getName();
 		String methodNameCalled = imbCalled.toString();
