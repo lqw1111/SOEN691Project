@@ -150,20 +150,79 @@ public class MethodInvocationInTryVisitor extends ASTVisitor{
 	}
 	
 	
-	public Set<Node> FindAllCalledNode(Node node){
+	public Set<Node> FindAllCalledNode2(Node node){
 		Set<Node> values = SOEN691.patterns.ExceptionFinder.CallGraph.get(node);
 		Set<Node> res = new HashSet<>();
-		if(values == null) {
+		if(values == null||values.size()==0||values.isEmpty()) {
 			
-			values.add(node);
+//			values.add(node);
 			return res;
 		}
+		Set<Node> temp = new HashSet<Node>();
 		for(Node e:values) {
-			values.addAll(FindAllCalledNode(e));
+			temp.addAll(FindAllCalledNode(e));
+//			values.addAll(FindAllCalledNode(e));
 		}
+		values.addAll(temp);
 		return values;
 		
 	}
+	
+	public Set<Node> FindAllCalledNode(Node node){
+		Set<Node> values = SOEN691.patterns.ExceptionFinder.CallGraph.get(node);
+		Set<Node> res = new HashSet<>();
+		int count = 0;
+		while(true) {
+				count++;
+				if(count >100) {
+					break;
+				}
+			   if(values.isEmpty()||values.size()==0||values == null) {
+//			    res.add(node);
+			    break;
+			   }
+			   else if(values.size()==1&&values.contains(node)) {
+				   break;
+				   
+			   }
+			   Set<Node> temp = new HashSet<>();
+			   for(Node e:values) {
+				if(!SOEN691.patterns.ExceptionFinder.CallGraph.containsKey(e)) {
+					continue;
+				}
+				else if(SOEN691.patterns.ExceptionFinder.CallGraph.get(e).isEmpty()) {
+					continue;
+					
+				}
+				else if(SOEN691.patterns.ExceptionFinder.CallGraph.get(e).size()==0) {
+					continue;
+					
+				}
+				else if(SOEN691.patterns.ExceptionFinder.CallGraph.get(e) != null) {
+			    	Set<Node> tempSet = new HashSet<Node>();
+			    	tempSet = SOEN691.patterns.ExceptionFinder.CallGraph.get(e);
+			    	if(!tempSet.isEmpty()) {
+			    		temp.addAll(SOEN691.patterns.ExceptionFinder.CallGraph.get(e));
+			    	}
+			    	
+			    }
+			    
+			   }
+			   res.addAll(temp);
+			   values = new HashSet<>();
+			   values.addAll(temp);
+			   
+			  }
+//		values.addAll(temp);
+		return values;
+		
+	}
+	
+	
+	
+	
+	
+	
 
 
 	@Override
@@ -192,12 +251,14 @@ public class MethodInvocationInTryVisitor extends ASTVisitor{
 		if(!SOEN691.patterns.ExceptionFinder.CallGraph.containsKey(nodeCalled)) {
 			return super.visit(node);
 		}
+		
+		
 		Set<Node> calledNodeSet = new HashSet<Node>();
 		
 //		calledNodeSet = SOEN691.patterns.ExceptionFinder.CallGraph.get(nodeCalled);
 		calledNodeSet = FindAllCalledNode(nodeCalled);
 
-		
+//		System.out.print("vasdvasdavas");
 		if(calledNodeSet == null) {
 			calledNodeSet = new HashSet<Node>();
 			calledNodeSet.add(nodeCalled);
@@ -219,8 +280,10 @@ public class MethodInvocationInTryVisitor extends ASTVisitor{
 		Set<String> res = new HashSet<String>();
 		
 		for(Node node:set) {
+			if(SOEN691.patterns.ExceptionFinder.ExceptionMap.get(node)!=null) {
+				res.addAll(SOEN691.patterns.ExceptionFinder.ExceptionMap.get(node));
+			}
 			
-			res.addAll(SOEN691.patterns.ExceptionFinder.ExceptionMap.get(node));
 			
 		}
 		
