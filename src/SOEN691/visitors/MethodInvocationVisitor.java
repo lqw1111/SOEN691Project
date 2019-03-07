@@ -297,7 +297,31 @@ public class MethodInvocationVisitor extends ASTVisitor {
 
 		return super.visit(node);
 	}
-
+	@Override
+	 public boolean visit(TypeDeclaration node) {
+	  
+	  ITypeBinding itb = node.resolveBinding();
+	  String name = itb.getName();
+	  if(!name.contains("Exception")) {
+	   return super.visit(node);
+	  }
+	  String extend;
+	  try {
+		  extend = node.getSuperclassType().resolveBinding().getName();
+	  }
+	  catch(Exception e) {
+//		  SOEN691.patterns.ExceptionFinder.exceptionExtends.put(name,name);
+		  return super.visit(node);
+	  }
+	  
+	  if(extend == null) {
+//	   SOEN691.patterns.ExceptionFinder.exceptionExtends.put(name,name);
+	   }
+	  else {
+	   SOEN691.patterns.ExceptionFinder.exceptionExtends.put(name,extend);
+	  }
+	  return super.visit(node);
+	 }
 	@Override
 	public boolean visit(SuperMethodInvocation node) {
 		countOfMethodInvocation++;
