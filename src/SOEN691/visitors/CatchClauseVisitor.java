@@ -226,7 +226,7 @@ public class CatchClauseVisitor extends ASTVisitor{
 		//All exception
 
 		//to compare exceptions between try and block
-		boolean overcatch = true;
+	
 		String exceptionsInTry = "";
 
 //		for(String etype:mVisitor.ResultExceptionSet) {
@@ -237,25 +237,37 @@ public class CatchClauseVisitor extends ASTVisitor{
 //			}
 //		}
 		//previous version
-
+		boolean findExaclySameException = false;
+		boolean overcatch = false;
+		int overcatch_count = 0;
 		for(String etype:mVisitor.ResultExceptionSet) {
 			exceptionsInTry = exceptionsInTry +", "+etype;
-
+			if(findExaclySameException) {
+				break;
+			}
 			for(String etypeInCatch: wholeExceptionsInCatch) {
 				if(etype.equals(etypeInCatch)) {
-					overcatch = false;
+					
+					findExaclySameException = true;
 					break;
 				}
+				if(HighCatchLow(etypeInCatch, etype)) {
+					overcatch = true;
+					overcatch_count++;
+					
+				}
+				
 			}
 
 		}
+		
 
 
 
 		exceptionsInTry = exceptionsInTry.replaceFirst(", ", "");
 
 
-		if(overcatch) {
+		if(!findExaclySameException&&overcatch_count>1) {
 			overCatches.add(node);
 			StringBuilder sb = new StringBuilder();
 			sb.append("Exceptions detected in the try block: ");
@@ -302,7 +314,23 @@ public class CatchClauseVisitor extends ASTVisitor{
 
 			}
 			else if (nn instanceof ThrowStatement) {
-				destructiveWrappingCatches.add(node);
+				ThrowStatement throwSt = (ThrowStatement)nn;
+				if(throwSt.getExpression() instanceof ClassInstanceCreation) {
+					ClassInstanceCreation newException = (ClassInstanceCreation)throwSt.getExpression();
+					String nameOfnewException = newException.resolveTypeBinding().getName();
+					boolean iswrap = true;
+					for(String etypeInCatch: wholeExceptionsInCatch) {
+						if(etypeInCatch.equals(nameOfnewException)) {
+							iswrap = false;
+					}
+					}
+					if(iswrap) {
+						destructiveWrappingCatches.add(node);
+					}
+					
+				}
+				
+				
 			}
 		}
 
@@ -312,7 +340,21 @@ public class CatchClauseVisitor extends ASTVisitor{
 		return super.visit(node);
 	}
 
+	// Throwable Exception IOException
+	public boolean HighCatchLow(String exceptionCatch, String exceptionTry) {
+		String higherException = SOEN691.patterns.ExceptionFinder.exceptionExtends.get(exceptionTry);
 
+		while(true) {
+			if(higherException == null)
+				break;
+			
+			if(higherException.equals(exceptionCatch))
+				return true;
+			higherException = SOEN691.patterns.ExceptionFinder.exceptionExtends.get(higherException);
+		}
+		return false;
+	}
+	
 	public HashSet<CatchClause> getMultipleLineLogCatches() {
 		return multipleLineCatches;
 	}

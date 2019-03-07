@@ -297,31 +297,31 @@ public class MethodInvocationVisitor extends ASTVisitor {
 
 		return super.visit(node);
 	}
-	@Override
-	 public boolean visit(TypeDeclaration node) {
-	  
-	  ITypeBinding itb = node.resolveBinding();
-	  String name = itb.getName();
-	  if(!name.contains("Exception")) {
-	   return super.visit(node);
-	  }
-	  String extend;
-	  try {
-		  extend = node.getSuperclassType().resolveBinding().getName();
-	  }
-	  catch(Exception e) {
-//		  SOEN691.patterns.ExceptionFinder.exceptionExtends.put(name,name);
-		  return super.visit(node);
-	  }
-	  
-	  if(extend == null) {
-//	   SOEN691.patterns.ExceptionFinder.exceptionExtends.put(name,name);
-	   }
-	  else {
-	   SOEN691.patterns.ExceptionFinder.exceptionExtends.put(name,extend);
-	  }
-	  return super.visit(node);
-	 }
+//	@Override
+//	 public boolean visit(TypeDeclaration node) {
+//	  
+//	  ITypeBinding itb = node.resolveBinding();
+//	  String name = itb.getName();
+//	  if(!name.contains("Exception")) {
+//	   return super.visit(node);
+//	  }
+//	  String extend;
+//	  try {
+//		  extend = node.getSuperclassType().resolveBinding().getName();
+//	  }
+//	  catch(Exception e) {
+////		  SOEN691.patterns.ExceptionFinder.exceptionExtends.put(name,name);
+//		  return super.visit(node);
+//	  }
+//	  
+//	  if(extend == null) {
+////	   SOEN691.patterns.ExceptionFinder.exceptionExtends.put(name,name);
+//	   }
+//	  else {
+//	   SOEN691.patterns.ExceptionFinder.exceptionExtends.put(name,extend);
+//	  }
+//	  return super.visit(node);
+//	 }
 	@Override
 	public boolean visit(SuperMethodInvocation node) {
 		countOfMethodInvocation++;
@@ -488,6 +488,7 @@ public class MethodInvocationVisitor extends ASTVisitor {
 		// Add all Non-Runtime exception in try block
 		// Example: void print() throw XXXException
 		for (ITypeBinding b : imb.getExceptionTypes()) {
+			UpdateExceptionMap(b);
 			String str = b.getQualifiedName();
 			if (str.contains(".")) {
 				String ss;
@@ -502,6 +503,30 @@ public class MethodInvocationVisitor extends ASTVisitor {
 		}
 
 		return exceptionList;
+	}
+	
+	public void UpdateExceptionMap(ITypeBinding itb) {
+		
+		  String name = itb.getName();
+		  if(SOEN691.patterns.ExceptionFinder.exceptionExtends.containsKey(name)) {
+			  return;
+		  }
+		  ITypeBinding extend;
+		  String extendName;
+		  try {
+			  extend = itb.getSuperclass();
+			  extendName = extend.getName();
+			  
+		  }
+		  catch(Exception e) {
+			  return;
+		  }
+		  if(!name.equals(extendName)) {
+			  SOEN691.patterns.ExceptionFinder.exceptionExtends.put(name, extendName);
+
+		  }
+		  
+		  UpdateExceptionMap(extend);
 	}
 
 	private static String getJavadocFast(IMember member) throws JavaModelException {
