@@ -34,6 +34,8 @@ public class ExceptionFinder {
 	HashSet<MethodDeclaration> multiLineLogCatchMethod = new HashSet<>();
 	HashSet<MethodDeclaration> destructiveWrappingMethod = new HashSet<>();
 	HashSet<MethodDeclaration> overCatchMethod = new HashSet<>();
+	
+	public static HashMap<String,String> exceptionExtends= new HashMap<String, String>();
 
 	public static HashMap<Node, Set<Node>> CallGraph = new HashMap<Node, Set<Node>>();
 
