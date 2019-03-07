@@ -36,6 +36,7 @@ public class DetectException extends AbstractHandler {
 		SampleHandler.printMessage("Over-catch detected: "+CountOfOverCatch);
 
 		SampleHandler.printMessage("DONE DETECTING");
+		System.out.println(SOEN691.patterns.ExceptionFinder.exceptionExtends.size());
 
 		return null;
 	}
