@@ -298,6 +298,7 @@ public class CatchClauseVisitor extends ASTVisitor{
 						 type = mInvocation.resolveMethodBinding().getDeclaringClass();
 					}
 					catch (Exception e) {
+				
 						continue;
 					}
 
@@ -316,15 +317,26 @@ public class CatchClauseVisitor extends ASTVisitor{
 			else if (nn instanceof ThrowStatement) {
 				ThrowStatement throwSt = (ThrowStatement)nn;
 				if(throwSt.getExpression() instanceof ClassInstanceCreation) {
-					ClassInstanceCreation newException = (ClassInstanceCreation)throwSt.getExpression();
-					String nameOfnewException = newException.resolveTypeBinding().getName();
-					boolean iswrap = true;
-					for(String etypeInCatch: wholeExceptionsInCatch) {
-						if(etypeInCatch.equals(nameOfnewException)) {
-							iswrap = false;
+					SingleVariableDeclaration sv = node.getException();
+					String ename = sv.getName().toString();
+					ClassInstanceCreation cic = (ClassInstanceCreation)throwSt.getExpression();
+					List<Object> argList = cic.arguments();
+					boolean des = true;
+					if(argList.size()==0) {
+						des = true;
 					}
+					else {
+						for(Object o:argList) {
+							String s = o.toString();
+							s = s.trim();
+							if(s.equals(ename)||s.equals(ename+".getStackTrace()")) {
+								des = false;
+								break;
+							}	
+						}
 					}
-					if(iswrap) {
+					
+					if(des) {
 						destructiveWrappingCatches.add(node);
 					}
 					
