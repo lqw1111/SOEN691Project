@@ -4,6 +4,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.core.resources.IProject;
@@ -17,11 +18,13 @@ import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CatchClause;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.TryStatement;
 
 import SOEN691.handlers.SampleHandler;
 import SOEN691.visitors.CatchClauseVisitor;
 import SOEN691.visitors.MethodInvocationVisitor;
 import SOEN691.visitors.Node;
+import SOEN691.visitors.TryBlockVisitor;
 
 public class ExceptionFinder {
 	HashMap<MethodDeclaration, String> suspectMethods = new HashMap<>();
@@ -34,10 +37,8 @@ public class ExceptionFinder {
 	HashSet<MethodDeclaration> multiLineLogCatchMethod = new HashSet<>();
 	HashSet<MethodDeclaration> destructiveWrappingMethod = new HashSet<>();
 	HashSet<MethodDeclaration> overCatchMethod = new HashSet<>();
-	
-	
-	
-	public static HashMap<String,String> exceptionExtends= new HashMap<String, String>();
+
+	public static HashMap<String, String> exceptionExtends = new HashMap<String, String>();
 
 	public static HashMap<Node, Set<Node>> CallGraph = new HashMap<Node, Set<Node>>();
 
@@ -48,6 +49,7 @@ public class ExceptionFinder {
 	public HashMap<MethodDeclaration, String> getSuspectMethods() {
 		return suspectMethods;
 	}
+
 	private void initExceptionExtends() {
 		exceptionExtends.put("Exception", "Throwable");
 		exceptionExtends.put("RuntimeException", "Exception");
@@ -79,7 +81,7 @@ public class ExceptionFinder {
 		exceptionExtends.put("IllegalChannelGroupException", "IllegalArgumentException");
 		exceptionExtends.put("IllegalCharsetNameException", "IllegalArgumentException");
 		exceptionExtends.put("IllegalFormatException", "IllegalArgumentException");
-		
+
 		exceptionExtends.put("DuplicateFormatFlagsException", "IllegalFormatException");
 		exceptionExtends.put("FormatFlagsConversionMismatchException", "IllegalFormatException");
 		exceptionExtends.put("IllegalFormatCodePointException", "IllegalFormatException");
@@ -92,7 +94,6 @@ public class ExceptionFinder {
 		exceptionExtends.put("UnknownFormatConversionException", "IllegalFormatException");
 		exceptionExtends.put("UnknownFormatFlagsException", "IllegalFormatException");
 
-		
 		exceptionExtends.put("IllegalSelectorException", "IllegalArgumentException");
 		exceptionExtends.put("IllegalThreadStateException", "IllegalArgumentException");
 		exceptionExtends.put("InvalidKeyException", "IllegalArgumentException");
@@ -106,7 +107,7 @@ public class ExceptionFinder {
 		exceptionExtends.put("UnresolvedAddressException", "IllegalArgumentException");
 		exceptionExtends.put("UnsupportedAddressTypeException", "IllegalArgumentException");
 		exceptionExtends.put("UnsupportedCharsetException", "IllegalArgumentException");
-	
+
 		exceptionExtends.put("IllegalMonitorStateException", "RuntimeException");
 		exceptionExtends.put("IllegalPathStateException", "RuntimeException");
 		//
@@ -147,7 +148,7 @@ public class ExceptionFinder {
 		exceptionExtends.put("RuntimeErrorException", "JMRuntimeException");
 		exceptionExtends.put("RuntimeMBeanException", "JMRuntimeException");
 		exceptionExtends.put("RuntimeOperationsException", "JMRuntimeException");
-	
+
 		exceptionExtends.put("LSException", "RuntimeException");
 		exceptionExtends.put("MalformedParameterizedTypeException", "RuntimeException");
 		exceptionExtends.put("MalformedParametersException", "RuntimeException");
@@ -185,8 +186,7 @@ public class ExceptionFinder {
 		exceptionExtends.put("HTTPException", "ProtocolException");
 		exceptionExtends.put("SOAPFaultException", "ProtocolException");
 		exceptionExtends.put("WrongMethodTypeException", "RuntimeException");
-		
-		
+
 	}
 
 	public void findExceptions(IProject project) throws JavaModelException {
@@ -216,50 +216,58 @@ public class ExceptionFinder {
 
 		for (ICompilationUnit unit : packageFragment.getCompilationUnits()) {
 			CompilationUnit parsedCompilationUnit = parse(unit);
-
 			CatchClauseVisitor exceptionVisitor = new CatchClauseVisitor();
+			TryBlockVisitor tryBlockVisitor = new TryBlockVisitor();
 			parsedCompilationUnit.accept(exceptionVisitor);
+			parsedCompilationUnit.accept(tryBlockVisitor);
 //			printExceptions(exceptionVisitor);
 			getMethodsWithTargetCatchClauses(exceptionVisitor);
-			getOuterClass(exceptionVisitor, parsedCompilationUnit);
+			updateAntiPatternsContainer(exceptionVisitor, tryBlockVisitor, parsedCompilationUnit);
 			CountOfCatchBlock = CountOfCatchBlock + exceptionVisitor.countOfCatchBlock;
 
 		}
 	}
 
-	private void getOuterClass(CatchClauseVisitor catchClauseVisitor, CompilationUnit parsedCompilationUnit) {
+	private void updateAntiPatternsContainer(CatchClauseVisitor catchClauseVisitor, TryBlockVisitor tryBlockVisitor,
+			CompilationUnit parsedCompilationUnit) {
 
-		int NumOfMultipleLine = catchClauseVisitor.getMultipleLineLogCatches().size();
-		int NumOfWrap = catchClauseVisitor.getDestructiveWrappingCatches().size();
-		int NumOfOverCatch = catchClauseVisitor.getOverCatches().size();
+		int numOfMultipleLine = catchClauseVisitor.getMultipleLineLogCatches().size();
+		int numOfWrap = catchClauseVisitor.getDestructiveWrappingCatches().size();
+		int numOfOverCatch = catchClauseVisitor.getOverCatches().size();
+		int numOfSLOCInCatchBlock = getNumOfCatchStatement(catchClauseVisitor);
+		int numOfSLOCInTryBlock = getNumOfTryStatement(tryBlockVisitor);
 
 		HashMap<String, Integer> antiPatterns = new HashMap<String, Integer>();
-		antiPatterns.put("CountOfMultipleLine", NumOfMultipleLine);
-		antiPatterns.put("CountOfWrap", NumOfWrap);
-		antiPatterns.put("CountOfOverCatch", NumOfOverCatch);
+		antiPatterns.put("CountOfMultipleLine", numOfMultipleLine);
+		antiPatterns.put("CountOfWrap", numOfWrap);
+		antiPatterns.put("CountOfOverCatch", numOfOverCatch);
+		antiPatterns.put("SLOCInTryBlock", numOfSLOCInTryBlock);
+		antiPatterns.put("SLOCInCatchBlock", numOfSLOCInCatchBlock);
 		antiPatternsContainer.put(parsedCompilationUnit.getJavaElement().getPath().toString(), antiPatterns);
 	}
 
 	private static final String NEW_LINE_SEPARATOR = "\n";
 
 	private void downLoadTXTFile(IProject project) {
-		String format = "%40s %20s %15s %15s";
+		String format = "%15s %15s %15s %15s %15s %15s";
 
 		FileWriter fileWriter = null;
 		try {
-			fileWriter = new FileWriter(project.getName() + ".txt");
-			fileWriter
-					.append(String.format(format, "File path\t", "#Wrap\t", "#OverCatch\t", "#MultiLine\t").toString());
+			fileWriter = new FileWriter(project.getName() + ".csv");
+//			fileWriter = new FileWriter("/Users/jingyang/Desktop/" + project.getName() + ".csv");
+			fileWriter.append(String.format(format, "File path\t", "#Wrap\t", "#OverCatch\t", "#MultiLine\t",
+					"SLOC in Try\t", "SLOC in Catch\t").toString());
+
 			fileWriter.append(NEW_LINE_SEPARATOR);
 
 			for (String fileName : antiPatternsContainer.keySet()) {
-				String[] subFileNameString = fileName.toString().split("/");
 				HashMap<String, Integer> antiPatterns = antiPatternsContainer.get(fileName);
-				fileWriter.append(String.format(format,
-						subFileNameString[1] + "/.../" + subFileNameString[subFileNameString.length - 1] + "\t",
+				fileWriter.append(String.format(format, fileName.toString() + "\t",
 						antiPatterns.get("CountOfWrap").toString() + "\t",
 						antiPatterns.get("CountOfOverCatch").toString() + "\t",
-						antiPatterns.get("CountOfMultipleLine").toString() + "\t"));
+						antiPatterns.get("CountOfMultipleLine").toString() + "\t",
+						antiPatterns.get("SLOCInTryBlock").toString() + "\t",
+						antiPatterns.get("SLOCInCatchBlock").toString() + "\t"));
 
 				fileWriter.append(NEW_LINE_SEPARATOR);
 			}
@@ -408,5 +416,23 @@ public class ExceptionFinder {
 			SampleHandler.printMessage(catchClauseVisitor.overCatchesDetails.get(overCatch));
 
 		}
+	}
+
+	private int getNumOfCatchStatement(CatchClauseVisitor catchClauseVisitor) {
+		int count = 0;
+		for (Map.Entry<CatchClause, Integer> catchBlocks : catchClauseVisitor.catchBlocksList.entrySet()) {
+			count += catchBlocks.getValue();
+		}
+		return count;
+
+	}
+
+	private int getNumOfTryStatement(TryBlockVisitor tryBlockVisitor) {
+		int count = 0;
+		for (Map.Entry<TryStatement, Integer> tryBlocks : tryBlockVisitor.tryBlocksList.entrySet()) {
+			count += tryBlocks.getValue();
+		}
+		return count;
+
 	}
 }
