@@ -2,3 +2,5 @@
 .project
 .settings/
 *.csv
+.DS_Store
+src/.DS_Store
