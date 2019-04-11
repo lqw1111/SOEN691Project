@@ -524,10 +524,6 @@ public class ExceptionFinder {
 			res.GetClausePercentage = Math.min((float) 1.0, (float) res.GetClauseCount / (float) res.CatchQuantity);
 			res.ThrowInFinallyPercentage = Math.min((float) 1.0,
 					(float) res.ThrowInFinallyCount / (float) res.CatchQuantity);
-			res.UnhandledExceptionsPercentage = Math.min((float) 1.0,
-					(float) res.UnhandledExceptionsCount / (float) res.CatchQuantity);
-			res.UnreachableExceptionsPercentage = Math.min((float) 1.0,
-					(float) res.UnreachableExceptionsCount / (float) res.CatchQuantity);
 		}
 
 	}

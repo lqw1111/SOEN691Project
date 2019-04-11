@@ -31,6 +31,7 @@ import org.eclipse.jdt.core.dom.TryStatement;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 
 public class MethodInvocationInTryVisitor extends ASTVisitor{
+	
 	Set<MethodDeclaration> suspectDeclarations = new HashSet<MethodDeclaration>();
 	HashSet<MethodInvocation> suspectInvocations = new HashSet<MethodInvocation>();
 	
@@ -40,6 +41,7 @@ public class MethodInvocationInTryVisitor extends ASTVisitor{
 	public static HashMap<Node,Set<String>> ExceptionMap = new HashMap<>();
 	
 	public Set<String> ResultExceptionSet;
+
 	
 	
 	public static HashMap<Block,Set<MethodDeclaration>> tryMap = new HashMap<>();
@@ -55,6 +57,7 @@ public class MethodInvocationInTryVisitor extends ASTVisitor{
 	
 	@Override
 	public boolean visit(SuperMethodInvocation node) {
+
 		List<String> exceptionList = new ArrayList<String>();
 		ITypeBinding itbCalled ;
 		IMethodBinding imbCalled ;
@@ -101,6 +104,7 @@ public class MethodInvocationInTryVisitor extends ASTVisitor{
 
 	@Override
 	public boolean visit(ClassInstanceCreation node) {
+
 		List<String> exceptionList = new ArrayList<String>();
 		ITypeBinding itbCalled ;
 		IMethodBinding imbCalled ;
@@ -227,6 +231,7 @@ public class MethodInvocationInTryVisitor extends ASTVisitor{
 
 	@Override
 	public boolean visit(MethodInvocation node) {
+
 		
 		List<String> exceptionList = new ArrayList<String>();
 		ITypeBinding itbCalled ;

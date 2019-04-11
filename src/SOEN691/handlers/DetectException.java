@@ -60,6 +60,16 @@ public class DetectException extends AbstractHandler {
 			
 		}
 		
+		File file = new File("/Users/sandra/Desktop/se691/assignment/SOEN691Project/anti-pattern.txt");
+		try (OutputStream os = new FileOutputStream(file)) {
+
+            byte[] data = sb.toString().getBytes();
+            // 向文件写入内容
+            os.write(data);
+            os.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
 
 		System.out.println(ExceptionFinder.CountOfFiles);
@@ -81,23 +91,10 @@ public class DetectException extends AbstractHandler {
 	        		+ "log_try,loc_catch,sloc_try,sloc_catch,try_in_declaration,try_in_condition,try_in_loop,try_in_eh,try_in_other,invoked_methods,actions_abort,"
 	        		+ "actions_continue,actions_default,actions_empty,actions_log,actions_method,actions_nestedtry,actions_return,actions_throwcurrent,actions_thrownew,"
 	        		+ "actions_throwwrapping,actions_todo,actions_abort_percentage,actions_continue_percentage,actions_default_percentage,"
-	        		+ "actions_empty_percentage,actions_log_percentage,actions_method_percentage,actions_nestedtry_percentage,actions_return_percentage,actions_throwcurrent_percentage,"
-	        		+ "actions_thrownew_percentage,actions_throwwrap_percentage,actions_todo_percentage,subsumption_percentage,specific_percentage,"
-	        		+ "overcatch_percentage,overcatch_abort_percentage,"
+	        		+ "actions_empty_percentage,actions_log_percentage,this.actions_method_percentage,actions_nestedtry_percentage,actions_return_percentage,actions_throwcurrent_percentage,"
+	        		+ "actions_thrownew_percentage,actions_throwwrap_percentage,actions_todo_percentage,subsumption_percentage,specific_percentage,overcatch_percentage,overcatch_abort_percentage,"
 	        		+ "catch_donothing_percentage,catch_returnnull_percentage,catchgeneric_percentage,destructivewrapping_percentage,dummy_handler_percentage,ignoring_interrupted_exception_percentage,"
 	        		+ "incomplete_implementation_percentage,log_returnnull_percentage,log_throw_percentage,multiple_line_log_percentage,nestedtry_percentage,rely_getclause_percentage,throw_in_finally_percentage";
-	     
-//	        String title = "file_name,unhandledexceptions,unreachableexceptions,overcatch,overcatch_abort,catch_donothing,catch_returnnull,catchgeneric,destructivewrapping,"
-//	        		+ "dummy_handler,ignoring_interrupted_exception,incomplete_implementation,log_returnnull,log_throw,multiple_line_log,"
-//	        		+ "nestedtry,rely_getclause,throw_in_finally,subsumption,specific,unrecover_exception,recover_exception,tryquantity,catchquantity,"
-//	        		+ "log_try,loc_catch,sloc_try,sloc_catch,try_in_declaration,try_in_condition,try_in_loop,try_in_eh,try_in_other,invoked_methods,actions_abort,"
-//	        		+ "actions_continue,actions_default,actions_empty,actions_log,actions_method,actions_nestedtry,actions_return,actions_throwcurrent,actions_thrownew,"
-//	        		+ "actions_throwwrapping,actions_todo,actions_abort_percentage,actions_continue_percentage,actions_default_percentage,"
-//	        		+ "actions_empty_percentage,actions_log_percentage,actions_method_percentage,actions_nestedtry_percentage,actions_return_percentage,actions_throwcurrent_percentage,"
-//	        		+ "actions_thrownew_percentage,actions_throwwrap_percentage,actions_todo_percentage,subsumption_percentage,specific_percentage,unhandledexceptions_percentage,unreachableexceptions_percentage,"
-//	        		+ "overcatch_percentage,overcatch_abort_percentage,"
-//	        		+ "catch_donothing_percentage,catch_returnnull_percentage,catchgeneric_percentage,destructivewrapping_percentage,dummy_handler_percentage,ignoring_interrupted_exception_percentage,"
-//	        		+ "incomplete_implementation_percentage,log_returnnull_percentage,log_throw_percentage,multiple_line_log_percentage,nestedtry_percentage,rely_getclause_percentage,throw_in_finally_percentage";
 	        bw.write(title);
 	        //新增一行数据
 	        for(Result result :list) {
