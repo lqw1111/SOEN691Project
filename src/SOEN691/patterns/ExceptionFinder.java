@@ -4,10 +4,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.JavaCore;
@@ -16,14 +18,17 @@ import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CatchClause;
+import org.eclipse.jdt.core.dom.Comment;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
-import org.eclipse.jdt.core.dom.TryStatement;
 
+import SOEN691.handlers.DetectException;
 import SOEN691.handlers.SampleHandler;
 import SOEN691.visitors.CatchClauseVisitor;
+import SOEN691.visitors.CommentVisitor;
 import SOEN691.visitors.MethodInvocationVisitor;
 import SOEN691.visitors.Node;
+import SOEN691.visitors.Result;
 import SOEN691.visitors.TryBlockVisitor;
 
 public class ExceptionFinder {
@@ -33,10 +38,14 @@ public class ExceptionFinder {
 	public int CountOfOverCatch = 0;
 	public int CountOfWrap = 0;
 	public int CountOfMultipleLine = 0;
+	public static int CountOfFiles = 0;
+
 
 	HashSet<MethodDeclaration> multiLineLogCatchMethod = new HashSet<>();
 	HashSet<MethodDeclaration> destructiveWrappingMethod = new HashSet<>();
 	HashSet<MethodDeclaration> overCatchMethod = new HashSet<>();
+
+	public static HashMap<String, String> runtimeExceptionExtends = new HashMap<String, String>();
 
 	public static HashMap<String, String> exceptionExtends = new HashMap<String, String>();
 
@@ -189,8 +198,149 @@ public class ExceptionFinder {
 
 	}
 
+	private void initRunTimeExceptionExtends() {
+		runtimeExceptionExtends.put("Exception", "Throwable");
+		runtimeExceptionExtends.put("RuntimeException", "Exception");
+		runtimeExceptionExtends.put("AnnotationTypeMismatchException", "RuntimeException");
+		runtimeExceptionExtends.put("ArithmeticException", "RuntimeException");
+		runtimeExceptionExtends.put("ArrayStoreException", "RuntimeException");
+		runtimeExceptionExtends.put("BufferOverflowException", "RuntimeException");
+		runtimeExceptionExtends.put("BufferUnderflowException", "RuntimeException");
+		runtimeExceptionExtends.put("CannotRedoException", "RuntimeException");
+		runtimeExceptionExtends.put("CannotUndoException", "RuntimeException");
+		runtimeExceptionExtends.put("ClassCastException", "RuntimeException");
+		runtimeExceptionExtends.put("ClassCastException", "RuntimeException");
+		runtimeExceptionExtends.put("CMMException", "RuntimeException");
+		runtimeExceptionExtends.put("CompletionException", "RuntimeException");
+		runtimeExceptionExtends.put("ConcurrentModificationException", "RuntimeException");
+		runtimeExceptionExtends.put("DirectoryIteratorException", "ConcurrentModificationException");
+		runtimeExceptionExtends.put("DataBindingException", "RuntimeException");
+		runtimeExceptionExtends.put("DateTimeException", "RuntimeException");
+		runtimeExceptionExtends.put("DateTimeParseException", "DateTimeException");
+		runtimeExceptionExtends.put("UnsupportedTemporalTypeException", "DateTimeException");
+		runtimeExceptionExtends.put("ZoneRulesException", "DateTimeException");
+		runtimeExceptionExtends.put("DOMException", "RuntimeException");
+		runtimeExceptionExtends.put("EmptyStackException", "RuntimeException");
+		runtimeExceptionExtends.put("EnumConstantNotPresentException", "RuntimeException");
+		runtimeExceptionExtends.put("EventException", "RuntimeException");
+		runtimeExceptionExtends.put("FileSystemAlreadyExistsException", "RuntimeException");
+		runtimeExceptionExtends.put("FileSystemNotFoundException", "RuntimeException");
+		runtimeExceptionExtends.put("IllegalArgumentException", "RuntimeException");
+		runtimeExceptionExtends.put("IllegalChannelGroupException", "IllegalArgumentException");
+		runtimeExceptionExtends.put("IllegalCharsetNameException", "IllegalArgumentException");
+		runtimeExceptionExtends.put("IllegalFormatException", "IllegalArgumentException");
+
+		runtimeExceptionExtends.put("DuplicateFormatFlagsException", "IllegalFormatException");
+		runtimeExceptionExtends.put("FormatFlagsConversionMismatchException", "IllegalFormatException");
+		runtimeExceptionExtends.put("IllegalFormatCodePointException", "IllegalFormatException");
+		runtimeExceptionExtends.put("IllegalFormatConversionException", "IllegalFormatException");
+		runtimeExceptionExtends.put("IllegalFormatFlagsException", "IllegalFormatException");
+		runtimeExceptionExtends.put("IllegalFormatPrecisionException", "IllegalFormatException");
+		runtimeExceptionExtends.put("IllegalFormatWidthException", "IllegalFormatException");
+		runtimeExceptionExtends.put("MissingFormatArgumentException", "IllegalFormatException");
+		runtimeExceptionExtends.put("MissingFormatWidthException", "IllegalFormatException");
+		runtimeExceptionExtends.put("UnknownFormatConversionException", "IllegalFormatException");
+		runtimeExceptionExtends.put("UnknownFormatFlagsException", "IllegalFormatException");
+
+		runtimeExceptionExtends.put("IllegalSelectorException", "IllegalArgumentException");
+		runtimeExceptionExtends.put("IllegalThreadStateException", "IllegalArgumentException");
+		runtimeExceptionExtends.put("InvalidKeyException", "IllegalArgumentException");
+		runtimeExceptionExtends.put("InvalidOpenTypeException", "IllegalArgumentException");
+		runtimeExceptionExtends.put("InvalidParameterException", "IllegalArgumentException");
+		runtimeExceptionExtends.put("InvalidPathException", "IllegalArgumentException");
+		runtimeExceptionExtends.put("KeyAlreadyExistsException", "IllegalArgumentException");
+		runtimeExceptionExtends.put("NumberFormatException", "IllegalArgumentException");
+		runtimeExceptionExtends.put("PatternSyntaxException", "IllegalArgumentException");
+		runtimeExceptionExtends.put("ProviderMismatchException", "IllegalArgumentException");
+		runtimeExceptionExtends.put("UnresolvedAddressException", "IllegalArgumentException");
+		runtimeExceptionExtends.put("UnsupportedAddressTypeException", "IllegalArgumentException");
+		runtimeExceptionExtends.put("UnsupportedCharsetException", "IllegalArgumentException");
+
+		runtimeExceptionExtends.put("IllegalMonitorStateException", "RuntimeException");
+		runtimeExceptionExtends.put("IllegalPathStateException", "RuntimeException");
+		//
+		runtimeExceptionExtends.put("AcceptPendingException", "IllegalStateException");
+		runtimeExceptionExtends.put("AlreadyBoundException", "IllegalStateException");
+		runtimeExceptionExtends.put("AlreadyConnectedException", "IllegalStateException");
+		runtimeExceptionExtends.put("CancellationException", "IllegalStateException");
+		runtimeExceptionExtends.put("CancelledKeyException", "IllegalStateException");
+		runtimeExceptionExtends.put("ClosedDirectoryStreamException", "IllegalStateException");
+		runtimeExceptionExtends.put("ClosedFileSystemException", "IllegalStateException");
+		runtimeExceptionExtends.put("ClosedSelectorException", "IllegalStateException");
+		runtimeExceptionExtends.put("ClosedWatchServiceException", "IllegalStateException");
+		runtimeExceptionExtends.put("ConnectionPendingException", "IllegalStateException");
+
+		runtimeExceptionExtends.put("FormatterClosedException", "IllegalStateException");
+		runtimeExceptionExtends.put("IllegalBlockingModeException", "IllegalStateException");
+		runtimeExceptionExtends.put("IllegalComponentStateException", "IllegalStateException");
+		runtimeExceptionExtends.put("InvalidDnDOperationException", "IllegalStateException");
+		runtimeExceptionExtends.put("InvalidMarkException", "IllegalStateException");
+		runtimeExceptionExtends.put("NoConnectionPendingException", "IllegalStateException");
+		runtimeExceptionExtends.put("NonReadableChannelException", "IllegalStateException");
+		runtimeExceptionExtends.put("NonWritableChannelException", "IllegalStateException");
+		runtimeExceptionExtends.put("NotYetBoundException", "IllegalStateException");
+		runtimeExceptionExtends.put("NotYetConnectedException", "IllegalStateException");
+		runtimeExceptionExtends.put("OverlappingFileLockException", "IllegalStateException");
+		runtimeExceptionExtends.put("ReadPendingException", "IllegalStateException");
+		runtimeExceptionExtends.put("ShutdownChannelGroupException", "IllegalStateException");
+		runtimeExceptionExtends.put("WritePendingException", "IllegalStateException");
+		runtimeExceptionExtends.put("IllegalStateException", "RuntimeException");
+		runtimeExceptionExtends.put("IllformedLocaleException", "RuntimeException");
+		runtimeExceptionExtends.put("ImagingOpException", "RuntimeException");
+		runtimeExceptionExtends.put("IncompleteAnnotationException", "RuntimeException");
+		runtimeExceptionExtends.put("IndexOutOfBoundsException", "RuntimeException");
+		runtimeExceptionExtends.put("ArrayIndexOutOfBoundsException", "IndexOutOfBoundsException");
+		runtimeExceptionExtends.put("StringIndexOutOfBoundsException", "IndexOutOfBoundsException");
+		runtimeExceptionExtends.put("JMRuntimeException", "RuntimeException");
+		runtimeExceptionExtends.put("MonitorSettingException", "JMRuntimeException");
+		runtimeExceptionExtends.put("RuntimeErrorException", "JMRuntimeException");
+		runtimeExceptionExtends.put("RuntimeMBeanException", "JMRuntimeException");
+		runtimeExceptionExtends.put("RuntimeOperationsException", "JMRuntimeException");
+
+		runtimeExceptionExtends.put("LSException", "RuntimeException");
+		runtimeExceptionExtends.put("MalformedParameterizedTypeException", "RuntimeException");
+		runtimeExceptionExtends.put("MalformedParametersException", "RuntimeException");
+		runtimeExceptionExtends.put("MirroredTypesException", "RuntimeException");
+		runtimeExceptionExtends.put("MissingResourceException", "RuntimeException");
+		runtimeExceptionExtends.put("NegativeArraySizeException", "RuntimeException");
+		runtimeExceptionExtends.put("NoSuchElementException", "RuntimeException");
+		runtimeExceptionExtends.put("InputMismatchException", "NoSuchElementException");
+		runtimeExceptionExtends.put("NullPointerException", "RuntimeException");
+		runtimeExceptionExtends.put("ProfileDataException", "RuntimeException");
+		runtimeExceptionExtends.put("ProviderException", "RuntimeException");
+		runtimeExceptionExtends.put("ProviderNotFoundException", "RuntimeException");
+		runtimeExceptionExtends.put("RasterFormatException", "RuntimeException");
+		runtimeExceptionExtends.put("RejectedExecutionException", "RuntimeException");
+		runtimeExceptionExtends.put("SecurityException", "RuntimeException");
+		runtimeExceptionExtends.put("AccessControlException", "SecurityException");
+		runtimeExceptionExtends.put("RMISecurityException", "SecurityException");
+		runtimeExceptionExtends.put("SystemException", "RuntimeException");
+		//
+		runtimeExceptionExtends.put("TypeConstraintException", "RuntimeException");
+		runtimeExceptionExtends.put("TypeNotPresentException", "RuntimeException");
+		runtimeExceptionExtends.put("UncheckedIOException", "RuntimeException");
+		runtimeExceptionExtends.put("UndeclaredThrowableException", "RuntimeException");
+		runtimeExceptionExtends.put("UnknownEntityException", "RuntimeException");
+		runtimeExceptionExtends.put("UnknownAnnotationValueException", "UnknownEntityException");
+		runtimeExceptionExtends.put("UnknownElementException", "UnknownEntityException");
+		runtimeExceptionExtends.put("UnknownTypeException", "UnknownEntityException");
+		runtimeExceptionExtends.put("UnmodifiableSetException", "RuntimeException");
+		runtimeExceptionExtends.put("UnsupportedOperationException", "RuntimeException");
+		runtimeExceptionExtends.put("HeadlessException", "UnsupportedOperationException");
+		runtimeExceptionExtends.put("ReadOnlyBufferException", "UnsupportedOperationException");
+		runtimeExceptionExtends.put("ReadOnlyFileSystemException", "UnsupportedOperationException");
+		runtimeExceptionExtends.put("WebServiceException", "RuntimeException");
+		runtimeExceptionExtends.put("ProtocolException", "WebServiceException");
+		runtimeExceptionExtends.put("HTTPException", "ProtocolException");
+		runtimeExceptionExtends.put("SOAPFaultException", "ProtocolException");
+		runtimeExceptionExtends.put("WrongMethodTypeException", "RuntimeException");
+
+	}
+
 	public void findExceptions(IProject project) throws JavaModelException {
+//		resultMap.clear();
 		initExceptionExtends();
+		initRunTimeExceptionExtends();
 		IPackageFragment[] packages = JavaCore.create(project).getPackageFragments();
 		// Find all methodinvocation and create call graph
 		for (IPackageFragment mypackage : packages) {
@@ -207,67 +357,262 @@ public class ExceptionFinder {
 
 //			findAllMehodInvocation(mypackage);
 		}
+		System.out.println(DetectException.resultMap.size());
 		System.out.println("finish.");
 		downLoadTXTFile(project);
+
+	}
+
+	private String getAbsoluteFilePath(ICompilationUnit icu) {
+		String filePath = "";
+		String workSpacePath = "";
+		String test ="";
+		try {
+			test = icu.getCorrespondingResource().getLocation().toString();
+//			filePath = icu.getCorrespondingResource().getFullPath().toOSString();
+//			
+//			workSpacePath = icu.getCorrespondingResource().getWorkspace().getRoot().getLocation().toFile()
+//					.getAbsolutePath();
+//			workSpacePath = workSpacePath+"/hadoop-rel-release-2.9.0";
+			
+		} catch (JavaModelException e) {
+			e.printStackTrace();
+		}
+		return test;
+//		return workSpacePath + filePath;
+	}
+
+	private void checkTODOFIXMEComments(CompilationUnit unit, ICompilationUnit original) {
+		HashSet<CatchClause> set = new HashSet<CatchClause>();
+		String fileName = original.getPath().toString();
+		int comment_lines_in_catch = 0;
+		int comment_lines_in_try = 0;
+		for (Comment comment : (List<Comment>) unit.getCommentList()) {
+			CommentVisitor commentVisitor = new CommentVisitor(unit, getAbsoluteFilePath(original));
+			comment.accept(commentVisitor);
+
+			comment_lines_in_catch += commentVisitor.single_comment_lines_in_catch_count;
+
+			comment_lines_in_try += commentVisitor.single_comment_lines_in_try_count;
+
+			set.addAll(commentVisitor.getCatchContainsTODOorFIXMEComment());
+
+		}
+		// update result here
+		int todo_fixme_count = set.size();
+
+		updateCommentsResult(fileName, todo_fixme_count, todo_fixme_count, comment_lines_in_catch,
+				comment_lines_in_try);
 
 	}
 
 	private void findTargetCatchClauses(IPackageFragment packageFragment) throws JavaModelException {
 
 		for (ICompilationUnit unit : packageFragment.getCompilationUnits()) {
+
 			CompilationUnit parsedCompilationUnit = parse(unit);
-			CatchClauseVisitor exceptionVisitor = new CatchClauseVisitor();
-			TryBlockVisitor tryBlockVisitor = new TryBlockVisitor();
-			parsedCompilationUnit.accept(exceptionVisitor);
+			String s = unit.getPath().toString();
+			if(s.contains("/test/")) {
+				continue;
+			}
+
+
+			Result res = new Result(s);
+			if (!DetectException.resultMap.containsKey(s)) {
+				DetectException.resultMap.put(s, res);
+				CountOfFiles++;
+			}else {
+				continue;
+			}
+			if(s.contains("/hadoop-yarn-api/src/main/java/org/apache/hadoop/yarn/api/protocolrecords/package-info.java")) {
+				System.out.println("test found");
+			}
+			checkTODOFIXMEComments(parsedCompilationUnit, unit);
+
+			TryBlockVisitor tryBlockVisitor = new TryBlockVisitor(s);
 			parsedCompilationUnit.accept(tryBlockVisitor);
+			CatchClauseVisitor exceptionVisitor = new CatchClauseVisitor(s);
+			parsedCompilationUnit.accept(exceptionVisitor);
+			int tryQuantity = tryBlockVisitor.tryQuantity;
+			int catchQuantity = exceptionVisitor.countOfCatchBlock;
+			int loc_try = tryBlockVisitor.lOC;
+			int loc_catch = exceptionVisitor.lOC;
+			//
+			int try_in_Declaration = tryBlockVisitor.try_in_Declaration;
+			int try_in_Condition = tryBlockVisitor.try_in_Condition;
+			int try_in_Loop = tryBlockVisitor.try_in_Loop;
+			int try_int_EH = tryBlockVisitor.try_int_EH;
+			int try_in_Other = tryBlockVisitor.try_in_Other;
+			int invoked_methods = tryBlockVisitor.invoked_methods;
+
+			updateResult(s, tryQuantity, catchQuantity, loc_try, loc_catch, try_in_Declaration, try_in_Condition,
+					try_in_Loop, try_int_EH, try_in_Other, invoked_methods);
+
+			int actions_Abort = tryBlockVisitor.actions_abort;
+			int actions_Continue = tryBlockVisitor.actions_continue;
+			int actions_Default = tryBlockVisitor.actions_default;
+			int actions_Empty = tryBlockVisitor.actions_empty;
+			int actions_Log = tryBlockVisitor.actions_log;
+			int actions_Method = tryBlockVisitor.actions_method;
+			int actions_Nestedtry = tryBlockVisitor.actions_nestedtry;
+			int actions_Return = tryBlockVisitor.actions_return;
+			int actions_Throwcurrent = tryBlockVisitor.actions_throwcurrent;
+			int actions_Thrownew = tryBlockVisitor.actions_thrownew;
+			int actions_Throwwrap = tryBlockVisitor.actions_throwwrap;
+
+			updateActionsResult(s, actions_Abort, actions_Continue, actions_Default, actions_Empty, actions_Log,
+					actions_Method, actions_Nestedtry, actions_Return, actions_Throwcurrent, actions_Thrownew,
+					actions_Throwwrap);
 //			printExceptions(exceptionVisitor);
+
+			updatePercentageResult(s);
+
 			getMethodsWithTargetCatchClauses(exceptionVisitor);
-			updateAntiPatternsContainer(exceptionVisitor, tryBlockVisitor, parsedCompilationUnit);
+			getOuterClass(exceptionVisitor, parsedCompilationUnit);
 			CountOfCatchBlock = CountOfCatchBlock + exceptionVisitor.countOfCatchBlock;
 
 		}
 	}
 
-	private void updateAntiPatternsContainer(CatchClauseVisitor catchClauseVisitor, TryBlockVisitor tryBlockVisitor,
-			CompilationUnit parsedCompilationUnit) {
+	private void updatePercentageResult(String fileName) {
+		Result res = DetectException.resultMap.get(fileName);
+		if (res.TryQuantity != 0 && res.CatchQuantity!=0) {
 
-		int numOfMultipleLine = catchClauseVisitor.getMultipleLineLogCatches().size();
-		int numOfWrap = catchClauseVisitor.getDestructiveWrappingCatches().size();
-		int numOfOverCatch = catchClauseVisitor.getOverCatches().size();
-		int numOfSLOCInCatchBlock = getNumOfCatchStatement(catchClauseVisitor);
-		int numOfSLOCInTryBlock = getNumOfTryStatement(tryBlockVisitor);
+			// 12 actions and subsumption specific
+			res.Actions_Abort_Percentage = Math.min((float) 1.0, (float) res.Actions_Abort / (float) res.TryQuantity);
+			res.Actions_Continue_Percentage = Math.min((float) 1.0,
+					(float) res.Actions_Continue / (float) res.TryQuantity);
+			res.Actions_Default_Percentage = Math.min((float) 1.0,
+					(float) res.Actions_Default / (float) res.TryQuantity);
+			res.Actions_Empty_Percentage = Math.min((float) 1.0, (float) res.Actions_Empty / (float) res.TryQuantity);
+			res.Actions_Log_Percentage = Math.min((float) 1.0, (float) res.Actions_Log / (float) res.TryQuantity);
+			res.Actions_Method_Percentage = Math.min((float) 1.0, (float) res.Actions_Method / (float) res.TryQuantity);
+			res.Actions_Nestedtry_Percentage = Math.min((float) 1.0,
+					(float) res.Actions_Nestedtry / (float) res.TryQuantity);
+			res.Actions_Return_Percentage = Math.min((float) 1.0, (float) res.Actions_Return / (float) res.TryQuantity);
+			res.Actions_Throwcurrent_Percentage = Math.min((float) 1.0,
+					(float) res.Actions_Throwcurrent / (float) res.TryQuantity);
+			res.Actions_Thrownew_Percentage = Math.min((float) 1.0,
+					(float) res.Actions_Thrownew / (float) res.TryQuantity);
+			res.Actions_Throwwrap_Percentage = Math.min((float) 1.0,
+					(float) res.Actions_Throwwrap / (float) res.TryQuantity);
+			res.Actions_Todo_Percentage = Math.min((float) 1.0, (float) res.Actions_Todo / (float) res.TryQuantity);
+			res.SubSumptionPercentage = Math.min((float) 1.0, (float) res.SubSumptionCount / (float) res.TryQuantity);
+			res.SpecificPercentage = Math.min((float) 1.0, (float) res.SpecificCount / (float) res.TryQuantity);
+			// 15 anti-patterns
+			res.OvercatchPercentage = Math.min((float) 1.0, (float) res.OvercatchCount / (float) res.CatchQuantity);
+			res.OvercatchAbortPercentage = Math.min((float) 1.0,
+					(float) res.OvercatchAbortCount / (float) res.CatchQuantity);
+			res.DoNothingPercentage = Math.min((float) 1.0, (float) res.DoNothingCount / (float) res.CatchQuantity);
+			res.LogReturnNullPercentage = Math.min((float) 1.0,
+					(float) res.ReturnNullCount / (float) res.CatchQuantity);
+			res.CatchGenericPercentage = Math.min((float) 1.0,
+					(float) res.CatchGenericCount / (float) res.CatchQuantity);
+			res.DestructiveWrappingPercentage = Math.min((float) 1.0,
+					(float) res.DestructiveWrappingCount / (float) res.CatchQuantity);
+			res.DummyPercentage = Math.min((float) 1.0, (float) res.DummyCount / (float) res.CatchQuantity);
+			res.IgnoreInterruptedExceptionPercentage = Math.min((float) 1.0,
+					(float) res.IgnoreInterruptedExceptionCount / (float) res.CatchQuantity);
+			res.IncompletePercentage = Math.min((float) 1.0, (float) res.IncompleteCount / (float) res.CatchQuantity);
+			res.LogReturnNullPercentage = Math.min((float) 1.0,
+					(float) res.LogReturnNullCount / (float) res.CatchQuantity);
+			res.LogThrowPercentage = Math.min((float) 1.0, (float) res.LogThrowCount / (float) res.CatchQuantity);
+			res.MultipleLineLogPercentage = Math.min((float) 1.0,
+					(float) res.MultipleLineLogCount / (float) res.CatchQuantity);
+			res.Actions_Nestedtry_Percentage = Math.min((float) 1.0,
+					(float) res.NestedTryCount / (float) res.CatchQuantity);
+			res.GetClausePercentage = Math.min((float) 1.0, (float) res.GetClauseCount / (float) res.CatchQuantity);
+			res.ThrowInFinallyPercentage = Math.min((float) 1.0,
+					(float) res.ThrowInFinallyCount / (float) res.CatchQuantity);
+			res.UnhandledExceptionsPercentage = Math.min((float) 1.0,
+					(float) res.UnhandledExceptionsCount / (float) res.CatchQuantity);
+			res.UnreachableExceptionsPercentage = Math.min((float) 1.0,
+					(float) res.UnreachableExceptionsCount / (float) res.CatchQuantity);
+		}
+
+	}
+
+	private void updateResult(String file, int tryQuantity, int catchQuantity, int loc_try, int loc_catch,
+			int try_in_declaration, int try_in_condition, int try_in_loop, int try_in_EH, int try_in_other,
+			int invoked_methods) {
+		Result res = DetectException.resultMap.get(file);
+		res.addTryQuantity(tryQuantity);
+		res.addCatchQuantity(catchQuantity);
+		res.addLOC_Try(loc_try);
+		res.addLOC_Catch(loc_catch);
+		res.addTry_In_Declaration(try_in_declaration);
+		res.addTry_In_Condition(try_in_condition);
+		res.addTry_In_Loop(try_in_loop);
+		res.addTry_In_EH(try_in_EH);
+		res.addTry_In_Other(try_in_other);
+		res.addInvokedMethodsCount(invoked_methods);
+
+	}
+
+	private void updateActionsResult(String file, int ac_abort, int ac_continue, int ac_default, int ac_empty,
+			int ac_log, int ac_method, int ac_nestedtry, int ac_return, int ac_thrwocurrent, int ac_thrownew,
+			int ac_throwwrap) {
+
+		Result res = DetectException.resultMap.get(file);
+		res.addActions_Abort(ac_abort);
+		res.addActions_Continue(ac_continue);
+		res.addActions_Default(ac_default);
+		res.addActions_Empty(ac_empty);
+		res.addActions_Log(ac_log);
+		res.addActions_Method(ac_method);
+		res.addActions_Nestedtry(ac_nestedtry);
+		res.addActions_Return(ac_return);
+		res.addActions_Throwcurrent(ac_thrwocurrent);
+		res.addActions_Thrownew(ac_thrownew);
+		res.addActions_Throwwrap(ac_throwwrap);
+
+	}
+
+	private void updateCommentsResult(String file, int actions_todo, int incomplete, int comment_in_try,
+			int comment_in_catch) {
+
+		Result res = DetectException.resultMap.get(file);
+
+		res.addActions_Todo(actions_todo);
+		res.addIncompleteCount(incomplete);
+		res.addComment_In_Catch(comment_in_catch);
+		res.addComment_In_Try(comment_in_try);
+
+	}
+
+	private void getOuterClass(CatchClauseVisitor catchClauseVisitor, CompilationUnit parsedCompilationUnit) {
+
+		int NumOfMultipleLine = catchClauseVisitor.getMultipleLineLogCatches().size();
+		int NumOfWrap = catchClauseVisitor.getDestructiveWrappingCatches().size();
+		int NumOfOverCatch = catchClauseVisitor.getOverCatches().size();
 
 		HashMap<String, Integer> antiPatterns = new HashMap<String, Integer>();
-		antiPatterns.put("CountOfMultipleLine", numOfMultipleLine);
-		antiPatterns.put("CountOfWrap", numOfWrap);
-		antiPatterns.put("CountOfOverCatch", numOfOverCatch);
-		antiPatterns.put("SLOCInTryBlock", numOfSLOCInTryBlock);
-		antiPatterns.put("SLOCInCatchBlock", numOfSLOCInCatchBlock);
+		antiPatterns.put("CountOfMultipleLine", NumOfMultipleLine);
+		antiPatterns.put("CountOfWrap", NumOfWrap);
+		antiPatterns.put("CountOfOverCatch", NumOfOverCatch);
 		antiPatternsContainer.put(parsedCompilationUnit.getJavaElement().getPath().toString(), antiPatterns);
 	}
 
 	private static final String NEW_LINE_SEPARATOR = "\n";
 
 	private void downLoadTXTFile(IProject project) {
-		String format = "%15s %15s %15s %15s %15s %15s";
+		String format = "%40s %20s %15s %15s";
 
 		FileWriter fileWriter = null;
 		try {
-			fileWriter = new FileWriter(project.getName() + ".csv");
-//			fileWriter = new FileWriter("/Users/jingyang/Desktop/" + project.getName() + ".csv");
-			fileWriter.append(String.format(format, "File path\t", "#Wrap\t", "#OverCatch\t", "#MultiLine\t",
-					"SLOC in Try\t", "SLOC in Catch\t").toString());
-
+			fileWriter = new FileWriter(project.getName() + ".txt");
+			fileWriter
+					.append(String.format(format, "File path\t", "#Wrap\t", "#OverCatch\t", "#MultiLine\t").toString());
 			fileWriter.append(NEW_LINE_SEPARATOR);
 
 			for (String fileName : antiPatternsContainer.keySet()) {
+				String[] subFileNameString = fileName.toString().split("/");
 				HashMap<String, Integer> antiPatterns = antiPatternsContainer.get(fileName);
-				fileWriter.append(String.format(format, fileName.toString() + "\t",
+				fileWriter.append(String.format(format,
+						subFileNameString[1] + "/.../" + subFileNameString[subFileNameString.length - 1] + "\t",
 						antiPatterns.get("CountOfWrap").toString() + "\t",
 						antiPatterns.get("CountOfOverCatch").toString() + "\t",
-						antiPatterns.get("CountOfMultipleLine").toString() + "\t",
-						antiPatterns.get("SLOCInTryBlock").toString() + "\t",
-						antiPatterns.get("SLOCInCatchBlock").toString() + "\t"));
+						antiPatterns.get("CountOfMultipleLine").toString() + "\t"));
 
 				fileWriter.append(NEW_LINE_SEPARATOR);
 			}
@@ -363,10 +708,12 @@ public class ExceptionFinder {
 	public static CompilationUnit parse(ICompilationUnit unit) {
 		ASTParser parser = ASTParser.newParser(AST.JLS11);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
+
 		parser.setSource(unit);
 		parser.setResolveBindings(true);
 		parser.setBindingsRecovery(true);
 		parser.setStatementsRecovery(true);
+
 		return (CompilationUnit) parser.createAST(null); // parse
 	}
 
@@ -416,23 +763,5 @@ public class ExceptionFinder {
 			SampleHandler.printMessage(catchClauseVisitor.overCatchesDetails.get(overCatch));
 
 		}
-	}
-
-	private int getNumOfCatchStatement(CatchClauseVisitor catchClauseVisitor) {
-		int count = 0;
-		for (Map.Entry<CatchClause, Integer> catchBlocks : catchClauseVisitor.catchBlocksList.entrySet()) {
-			count += catchBlocks.getValue();
-		}
-		return count;
-
-	}
-
-	private int getNumOfTryStatement(TryBlockVisitor tryBlockVisitor) {
-		int count = 0;
-		for (Map.Entry<TryStatement, Integer> tryBlocks : tryBlockVisitor.tryBlocksList.entrySet()) {
-			count += tryBlocks.getValue();
-		}
-		return count;
-
 	}
 }
